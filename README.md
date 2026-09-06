@@ -1,4 +1,4 @@
-# SponsorFlow
+<img width="4658" height="4879" alt="diagram" src="https://github.com/user-attachments/assets/88422bcc-9680-4575-a926-9ef7ce142e77" /># SponsorFlow
 
 SponsorFlow is an internal sponsorship CRM for the HackClub Finance Team, designed to streamline and organize sponsorship outreach.
 
@@ -7,6 +7,8 @@ This project follows a decoupled client-server architecture:
 - **Frontend**: Next.js, React, Tailwind CSS, shadcn/ui.
 - **Backend**: Node.js, Express.js, TypeScript.
 - **Database**: PostgreSQL with Prisma ORM.
+## Project Structure 
+<img width="4658" height="4879" alt="diagram" src="https://github.com/user-attachments/assets/4e164740-7b9b-4e5f-af7c-913582055521" />
 
 ## Folder Structure
 ```
