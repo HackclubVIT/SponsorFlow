@@ -434,22 +434,19 @@ export default function CompanyProfilePage() {
           </div>
 
           {/* Company Description */}
-          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-xl shadow-sm ring-1 ring-inset ring-indigo-600/10 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <svg className="w-16 h-16 text-indigo-600" fill="currentColor" viewBox="0 0 24 24"><path d="M19.92 12.38a1 1 0 00-.22-1.09l-7-7a.996.996 0 10-1.41 1.41l5.3 5.3H4v2h12.59l-5.3 5.3a.996.996 0 000 1.41c.19.2.44.3.7.3s.51-.1.71-.29l7-7c.09-.09.16-.21.21-.33z"/></svg>
-            </div>
+          <div className="bg-white p-6 rounded-xl shadow-sm ring-1 ring-gray-900/5 relative overflow-hidden border-l-4 border-l-indigo-500">
             <div className="flex justify-between items-center mb-4 relative z-10">
-              <h3 className="font-semibold text-indigo-900 text-sm flex items-center gap-2">
+              <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
                 <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                Company Description & AI Context
+                Context for AI Assistant
               </h3>
               <div className="flex items-center gap-2">
                 {!isEditingSummary ? (
                   <button 
                     onClick={() => setIsEditingSummary(true)} 
-                    className="text-xs bg-white text-indigo-700 px-3 py-1.5 rounded-md font-medium shadow-sm ring-1 ring-inset ring-indigo-600/20 hover:bg-indigo-50 transition-colors"
+                    className="text-xs bg-white text-gray-700 px-3 py-1.5 rounded-md font-medium shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors"
                   >
-                    {company?.aiSummary ? 'Edit' : 'Add Description'}
+                    {company?.aiSummary ? 'Edit' : 'Add Info'}
                   </button>
                 ) : (
                   <button 
@@ -463,7 +460,7 @@ export default function CompanyProfilePage() {
                 <button 
                   onClick={handleGenerateSummary} 
                   disabled={generatingSummary || isEditingSummary} 
-                  className="text-xs bg-white text-indigo-700 px-3 py-1.5 rounded-md font-medium shadow-sm ring-1 ring-inset ring-indigo-600/20 hover:bg-indigo-50 disabled:opacity-50 transition-colors"
+                  className="text-xs bg-white text-gray-700 px-3 py-1.5 rounded-md font-medium shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50 transition-colors"
                   title="Generate AI Summary based on industry and website"
                 >
                   {generatingSummary ? 'Analyzing...' : 'Auto-Generate'}
@@ -477,14 +474,14 @@ export default function CompanyProfilePage() {
                   onChange={(e) => setSummaryText(e.target.value)}
                   placeholder="Paste or type a detailed description of the company, their products, or why they are a great fit for sponsorship to give the AI highly specific context..."
                   rows={4}
-                  className="w-full block rounded-md border-0 py-2.5 px-3.5 text-gray-900 shadow-sm ring-1 ring-inset ring-indigo-600/20 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-white/50 backdrop-blur-sm"
+                  className="w-full block rounded-md border-0 py-2.5 px-3.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 bg-white"
                 />
               ) : company?.aiSummary ? (
-                <div className="prose prose-sm prose-indigo max-w-none text-indigo-950/80 whitespace-pre-wrap leading-relaxed">
+                <div className="prose prose-sm prose-gray max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
                   {company.aiSummary}
                 </div>
               ) : (
-                <p className="text-sm text-indigo-900/50 italic">No description available. Add one or auto-generate to give the AI context.</p>
+                <p className="text-sm text-gray-400 italic">No context provided. Add details or auto-generate to help the AI write better emails.</p>
               )}
             </div>
           </div>
