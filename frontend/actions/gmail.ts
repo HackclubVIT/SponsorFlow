@@ -100,12 +100,14 @@ export async function sendEmail(companyId: string, subject: string, body: string
   const rawMessage = await createMimeEmail(company.email, subject, body);
 
   try {
-    await gmail.users.messages.send({
+    const sendResult = await gmail.users.messages.send({
       userId: 'me',
       requestBody: {
         raw: rawMessage,
       },
     });
+    var messageId = sendResult.data.id;
+    var threadId = sendResult.data.threadId;
   } catch (error: any) {
     console.error('Gmail API Error:', error);
     if (error.code === 429) {
@@ -126,7 +128,9 @@ export async function sendEmail(companyId: string, subject: string, body: string
       status: 'SENT',
       sentAt: new Date(),
       companyId,
-      senderId: userId
+      senderId: userId,
+      messageId: typeof messageId !== 'undefined' ? messageId : undefined,
+      threadId: typeof threadId !== 'undefined' ? threadId : undefined
     }
   });
 
@@ -260,7 +264,9 @@ export async function sendEmailWithAttachments(formData: FormData) {
       status: "SENT",
       sentAt: new Date(),
       companyId,
-      senderId: userId
+      senderId: userId,
+      messageId: typeof messageId !== 'undefined' ? messageId : undefined,
+      threadId: typeof threadId !== 'undefined' ? threadId : undefined
     }
   });
 
@@ -282,3 +288,108 @@ export async function sendEmailWithAttachments(formData: FormData) {
   return { success: true };
 }
 
+
+
+export async function syncInboxReplies() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) throw new Error("Unauthorized");
+  const userId = (session.user as any).id;
+
+  const gmail = await getAuthenticatedGmailClient(userId);
+
+  // Find all outbound emails that have a threadId and haven't been replied to yet,
+  // or where we just want to sync recent threads.
+  const recentEmails = await prisma.email.findMany({
+    where: { 
+      senderId: userId,
+      threadId: { not: null },
+      company: { status: { in: ['EMAIL_SENT', 'REPLIED'] } } 
+    },
+    include: { company: true },
+    orderBy: { sentAt: 'desc' },
+    take: 50 // Limit to recent 50 threads for performance
+  });
+
+  let newRepliesCount = 0;
+
+  for (const email of recentEmails) {
+    if (!email.threadId) continue;
+    
+    try {
+      // Fetch the thread from Gmail
+      const thread = await gmail.users.threads.get({
+        userId: 'me',
+        id: email.threadId,
+      });
+
+      if (!thread.data || !thread.data.messages) continue;
+
+      // Check messages in this thread
+      for (const message of thread.data.messages) {
+        // Skip the original outbound message we already tracked
+        if (message.id === email.messageId) continue;
+
+        // Extract sender and content
+        const headers = message.payload?.headers || [];
+        const fromHeader = headers.find(h => h.name?.toLowerCase() === 'from')?.value || 'Unknown Sender';
+        
+        // Ensure the message is actually inbound (not another sent message from us)
+        const isFromUs = fromHeader.includes(session.user?.email || '');
+        if (isFromUs) continue;
+
+        // Check if we already logged this reply
+        const existingReply = await prisma.reply.findUnique({
+          where: { messageId: message.id! }
+        });
+
+        if (!existingReply) {
+          // Decode body
+          let bodyData = '';
+          const parts = message.payload?.parts || [message.payload];
+          const textPart = parts.find(p => p?.mimeType === 'text/plain') || parts[0];
+          
+          if (textPart?.body?.data) {
+            bodyData = Buffer.from(textPart.body.data, 'base64').toString('utf8');
+          } else {
+            bodyData = message.snippet || 'No text content found.';
+          }
+
+          // Save the reply
+          await prisma.reply.create({
+            data: {
+              companyId: email.companyId,
+              emailId: email.id,
+              sender: fromHeader,
+              content: bodyData,
+              messageId: message.id
+            }
+          });
+
+          // Update company status to REPLIED if it was EMAIL_SENT
+          if (email.company.status === 'EMAIL_SENT') {
+            await prisma.company.update({
+              where: { id: email.companyId },
+              data: { status: 'REPLIED' }
+            });
+          }
+
+          // Add Activity
+          await prisma.activity.create({
+            data: {
+              companyId: email.companyId,
+              userId: userId,
+              type: 'EMAIL_REPLY',
+              description: 'Received a reply from ' + fromHeader
+            }
+          });
+
+          newRepliesCount++;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync thread ' + email.threadId, err);
+    }
+  }
+
+  return { success: true, count: newRepliesCount };
+}

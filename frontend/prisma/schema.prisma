@@ -135,6 +135,10 @@ model Email {
 
   sentAt    DateTime?
   attachments Json?   // Array of attachment metadata (url, filename)
+  
+  threadId  String?
+  messageId String?
+
   createdAt DateTime  @default(now())
   
   replies   Reply[]
@@ -153,6 +157,8 @@ model Reply {
   
   sender    String
   content   String
+  
+  messageId String?  @unique
   
   createdAt DateTime @default(now())
   

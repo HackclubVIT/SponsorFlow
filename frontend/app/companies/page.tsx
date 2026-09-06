@@ -18,6 +18,8 @@ const STATUS_BADGES: Record<string, string> = {
 };
 
 import { getCompanies, deleteCompany, importCompanies } from '../../actions/companies';
+import { syncInboxReplies } from '../../actions/gmail';
+import toast from 'react-hot-toast';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -35,6 +37,21 @@ export default function CompaniesPage() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+      const res = await syncInboxReplies();
+      toast.success(`Inbox synced! Found ${res.count} new replies.`);
+      if (res.count > 0) fetchCompanies();
+    } catch (err: any) {
+      toast.error('Failed to sync: ' + err.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const fetchCompanies = async () => {
     try {
@@ -155,6 +172,18 @@ export default function CompaniesPage() {
                   className="hidden" 
                   onChange={handleFileChange} 
                 />
+                
+                <button 
+                  onClick={handleSync} 
+                  disabled={syncing}
+                  className="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                >
+                  <svg className="-ml-0.5 h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  {syncing ? 'Syncing...' : 'Sync Inbox'}
+                </button>
+
                 <button 
                   onClick={() => fileInputRef.current?.click()} 
                   disabled={importing}
