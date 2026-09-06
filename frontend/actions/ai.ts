@@ -24,6 +24,123 @@ async function safeGenerate(prompt: string, fallback: string): Promise<string> {
   }
 }
 
+// Fetch and extract text content from a company's website
+async function fetchWebsiteContent(url: string): Promise<string> {
+  try {
+    // Normalize the URL
+    let normalizedUrl = url.trim();
+    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+      normalizedUrl = 'https://' + normalizedUrl;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
+    const response = await fetch(normalizedUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; SponsorFlow/1.0; +https://sponsorflow.app)',
+        'Accept': 'text/html',
+      },
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) return '';
+
+    const html = await response.text();
+
+    // Strip HTML tags, scripts, styles, and extract clean text
+    const cleaned = html
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+      .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+      .replace(/<header[\s\S]*?<\/header>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Return first ~3000 characters to stay within prompt limits
+    return cleaned.slice(0, 3000);
+  } catch (error) {
+    console.error('Failed to fetch website:', url, error);
+    return '';
+  }
+}
+
+// Ensure a company has an AI summary before drafting emails.
+// If missing, auto-generates one using website scraping + AI.
+async function ensureCompanySummary(company: any): Promise<string> {
+  if (company.aiSummary && company.aiSummary.trim().length > 10) {
+    return company.aiSummary;
+  }
+
+  // Scrape website if available
+  let websiteContent = '';
+  if (company.website) {
+    websiteContent = await fetchWebsiteContent(company.website);
+  }
+
+  const hasWebsiteData = websiteContent.length > 100;
+
+  const prompt = hasWebsiteData
+    ? `Act as an expert corporate researcher. Create a very concise, structured summary (in markdown bullet points) about the company: ${company.companyName}.
+    
+    Known details:
+    Industry: ${company.industry || 'Unknown'}
+    Website: ${company.website}
+    
+    Here is real content scraped from their website:
+    ---
+    ${websiteContent}
+    ---
+    
+    Based on the ACTUAL website content above, include these exact headers:
+    - **Industry Position:**
+    - **Key Products/Services:**
+    - **Developer Programs / APIs:** (if applicable, based on what you see on their site)
+    - **CSR / Initiatives:** (if mentioned on site)
+    - **Why They Might Sponsor a Tech Event:** (infer from their products, hiring, or developer outreach)
+    
+    Be factual. Only include information you can verify from the website content. Keep each bullet to 1-2 sentences.`
+    : `Act as an expert corporate researcher. Create a very concise, structured summary (in markdown bullet points) about the company: ${company.companyName}.
+    
+    Known details:
+    Industry: ${company.industry || 'Unknown'}
+    Website: ${company.website || 'Unknown'}
+    
+    Include these exact headers:
+    - **Industry Position:**
+    - **Key Products/Services:**
+    - **Developer Programs / APIs:** (if applicable)
+    - **CSR / Initiatives:**
+    - **Recent News / Activities:**
+    
+    Make educated guesses based on the industry and company name if they are famous, otherwise extract general patterns for a company in that sector. Keep each bullet to 1 sentence.`;
+
+  const fallback = `- **Industry Position:** Company in the ${company.industry || 'tech'} sector.
+- **Key Products/Services:** Products and services in their core industry.
+- **Developer Programs / APIs:** Unknown.
+- **CSR / Initiatives:** Unknown.
+- **Recent News / Activities:** No recent data available.`;
+
+  const summary = await safeGenerate(prompt, fallback);
+
+  // Save it to the database so we don't have to do this again
+  await prisma.company.update({
+    where: { id: company.id },
+    data: { aiSummary: summary }
+  });
+
+  return summary;
+}
+
 export async function generatePersonalizedIntro(companyId: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error('Unauthorized');
@@ -31,13 +148,16 @@ export async function generatePersonalizedIntro(companyId: string) {
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company) throw new Error('Company not found');
 
+  // Auto-generate context if missing
+  const aiSummary = await ensureCompanySummary(company);
+
   const prompt = `Write exactly ONE professional and highly personalized opening sentence for an email to a sponsor.
   Context:
   Company Name: ${company.companyName}
   Industry: ${company.industry || 'Unknown'}
   Website: ${company.website || 'Unknown'}
   Location: ${company.location || 'Unknown'}
-  Company Description: ${company.aiSummary || 'Not provided'}
+  Company Description: ${aiSummary}
   
   The sentence should be appreciative of their work or mission based on the description, without mentioning sponsorship yet.
   Only return the single sentence, no greetings or sign-offs.`;
@@ -54,20 +174,48 @@ export async function generateCompanySummary(companyId: string) {
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company) throw new Error('Company not found');
 
-  const prompt = `Act as an expert corporate researcher. Create a very concise, structured summary (in markdown bullet points) about the company: ${company.companyName}.
-  
-  Known details:
-  Industry: ${company.industry}
-  Website: ${company.website}
-  
-  Include these exact headers:
-  - **Industry Position:**
-  - **Key Products/Services:**
-  - **Developer Programs / APIs:** (if applicable)
-  - **CSR / Initiatives:**
-  - **Recent News / Activities:**
-  
-  Make educated guesses based on the industry and company name if they are famous, otherwise extract general patterns for a company in that sector. Keep each bullet to 1 sentence.`;
+  // Scrape website if available
+  let websiteContent = '';
+  if (company.website) {
+    websiteContent = await fetchWebsiteContent(company.website);
+  }
+
+  const hasWebsiteData = websiteContent.length > 100;
+
+  const prompt = hasWebsiteData
+    ? `Act as an expert corporate researcher. Create a very concise, structured summary (in markdown bullet points) about the company: ${company.companyName}.
+    
+    Known details:
+    Industry: ${company.industry || 'Unknown'}
+    Website: ${company.website}
+    
+    Here is real content scraped from their website:
+    ---
+    ${websiteContent}
+    ---
+    
+    Based on the ACTUAL website content above, include these exact headers:
+    - **Industry Position:**
+    - **Key Products/Services:**
+    - **Developer Programs / APIs:** (if applicable, based on what you see on their site)
+    - **CSR / Initiatives:** (if mentioned on site)
+    - **Why They Might Sponsor a Tech Event:** (infer from their products, hiring, or developer outreach)
+    
+    Be factual. Only include information you can verify from the website content. Keep each bullet to 1-2 sentences.`
+    : `Act as an expert corporate researcher. Create a very concise, structured summary (in markdown bullet points) about the company: ${company.companyName}.
+    
+    Known details:
+    Industry: ${company.industry || 'Unknown'}
+    Website: ${company.website || 'Unknown'}
+    
+    Include these exact headers:
+    - **Industry Position:**
+    - **Key Products/Services:**
+    - **Developer Programs / APIs:** (if applicable)
+    - **CSR / Initiatives:**
+    - **Recent News / Activities:**
+    
+    Make educated guesses based on the industry and company name if they are famous, otherwise extract general patterns for a company in that sector. Keep each bullet to 1 sentence.`;
 
   const fallback = `- **Industry Position:** Leading company in the ${company.industry || 'tech'} sector.
 - **Key Products/Services:** Enterprise software and consumer solutions.
@@ -102,7 +250,7 @@ export async function suggestReply(companyId: string, content: string) {
   - Be polite and appreciative.
   - If they asked a question, address it professionally.
   - Sign off the email politely using the sender's name: ${(session.user as any).name || 'Sponsorship Team'}
-  - IMPORTANT: Do not use em dashes (—), en dashes (–), or hyphens (-) to separate thoughts in sentences. Use commas, periods, or newlines instead.
+  - IMPORTANT: Do not use em dashes (\u2014), en dashes (\u2013), or hyphens (-) to separate thoughts in sentences. Use commas, periods, or newlines instead.
   - Use markdown bolding (**word**) strategically on a few catchy, important words (like metrics, event names, or key value propositions) to attract the sponsor and draw their attention.`;
 
   const fallback = `Thank you for getting back to us so quickly.\n\nWe appreciate your response and look forward to the possibility of collaborating. Please let me know if you need any further information from our end.\n\nBest,\n${(session.user as any).name || 'Sponsorship Team'}`;
@@ -114,14 +262,17 @@ export async function draftFullEmail(companyId: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
 
-  const company = await prisma.company.findUnique({ where: { id: companyId } });
+  let company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company) throw new Error("Company not found");
+
+  // Auto-generate context if missing (Option A + C)
+  const aiSummary = await ensureCompanySummary(company);
 
   const prompt = `Write a professional, persuasive, and detailed sponsorship outreach email to a potential sponsor for **Hack Club VIT Chennai**, a student-led technology and coding community.
 
 The target sponsor company is: ${company.companyName}
 Their industry: ${company.industry || "Unknown"}
-Company Context/Description: ${company.aiSummary || "Not provided"}
+Company Context/Description: ${aiSummary}
 
 Context about Hack Club VIT Chennai:
 - We are a community of student builders, engineers, and designers.
@@ -148,7 +299,7 @@ Guidelines:
 - Address the email directly to the team at ${company.companyName}.
 - Make it sound like it was written by genuine, ambitious college organizers.
 - Do not use generic placeholders where facts are provided above.
-- IMPORTANT: Do not use em dashes (—), en dashes (–), or hyphens (-) to separate thoughts in sentences. Use commas, periods, or newlines instead.
+- IMPORTANT: Do not use em dashes (\u2014), en dashes (\u2013), or hyphens (-) to separate thoughts in sentences. Use commas, periods, or newlines instead.
   - Use markdown bolding (**word**) strategically on a few catchy, important words (like metrics, event names, or key value propositions) to attract the sponsor and draw their attention.
 - You can use ${(session.user as any).name || 'Sponsorship Team'} for the sender signature.`;
 
@@ -179,18 +330,22 @@ Guidelines:
 
   return { success: true, subject, body };
 }
+
 export async function getDraftEmailPrompt(companyId: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
 
-  const company = await prisma.company.findUnique({ where: { id: companyId } });
+  let company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company) throw new Error("Company not found");
+
+  // Auto-generate context if missing (Option A + C)
+  const aiSummary = await ensureCompanySummary(company);
 
   const prompt = `Write a professional, persuasive, and detailed sponsorship outreach email to a potential sponsor for **Hack Club VIT Chennai**, a student-led technology and coding community.
 
 The target sponsor company is: ${company.companyName}
 Their industry: ${company.industry || "Unknown"}
-Company Context/Description: ${company.aiSummary || "Not provided"}
+Company Context/Description: ${aiSummary}
 
 Context about Hack Club VIT Chennai:
 - We are a community of student builders, engineers, and designers.
@@ -217,10 +372,9 @@ Guidelines:
 - Address the email directly to the team at ${company.companyName}.
 - Make it sound like it was written by genuine, ambitious college organizers.
 - Do not use generic placeholders where facts are provided above.
-- IMPORTANT: Do not use em dashes (—), en dashes (–), or hyphens (-) to separate thoughts in sentences. Use commas, periods, or newlines instead.
+- IMPORTANT: Do not use em dashes (\u2014), en dashes (\u2013), or hyphens (-) to separate thoughts in sentences. Use commas, periods, or newlines instead.
   - Use markdown bolding (**word**) strategically on a few catchy, important words (like metrics, event names, or key value propositions) to attract the sponsor and draw their attention.
 - You can use ${(session.user as any).name || 'Sponsorship Team'} for the sender signature.`;
 
   return { apiKey: process.env.GEMINI_API_KEY || "", prompt, companyName: company.companyName };
 }
-
