@@ -157,7 +157,7 @@ export default function CompanyProfilePage() {
       formData.append('body', composer.body);
       
       if (attachments && attachments.length > 0) {
-        attachments.forEach(file => {
+        Array.from(attachments).forEach(file => {
           formData.append('attachments', file);
         });
       }
