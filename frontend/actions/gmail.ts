@@ -77,8 +77,8 @@ export async function sendEmail(companyId: string, subject: string, body: string
   if (!company) throw new Error('Company not found');
   if (!company.email) throw new Error('Company has no email address');
 
-  if (company.status === 'EMAIL_SENT' || company.status === 'CONFIRMED') {
-    throw new Error('An email has already been sent to this company.');
+  if (company.status === 'CONFIRMED' || company.status === 'REJECTED') {
+    throw new Error('Cannot send emails to a confirmed or rejected company.');
   }
 
   if (company.status === 'NOT_ASSIGNED') {
@@ -136,17 +136,19 @@ export async function sendEmail(companyId: string, subject: string, body: string
     create: { companyId, userId }
   });
 
+  const newStatus = (company.status === 'NOT_ASSIGNED' || company.status === 'ASSIGNED') ? 'EMAIL_SENT' : company.status;
+
   await prisma.company.update({
     where: { id: companyId },
     data: { 
-      status: 'EMAIL_SENT',
+      status: newStatus,
       lockedById: null,
       lockedAt: null
     }
   });
 
   await prisma.activity.create({
-    data: { companyId, type: 'EMAIL_SENT', description: `Initial email sent: ${subject}`, userId }
+    data: { companyId, type: 'EMAIL_SENT', description: `Email sent: ${subject}`, userId }
   });
 
   return { success: true };
@@ -175,8 +177,8 @@ export async function sendEmailWithAttachments(formData: FormData) {
   if (!company) throw new Error("Company not found");
   if (!company.email) throw new Error("Company has no email address");
 
-  if (company.status === "EMAIL_SENT" || company.status === "CONFIRMED") {
-    throw new Error("An email has already been sent to this company.");
+  if (company.status === "CONFIRMED" || company.status === "REJECTED") {
+    throw new Error("Cannot send emails to a confirmed or rejected company.");
   }
 
   if (company.status === "NOT_ASSIGNED") {
@@ -262,17 +264,19 @@ export async function sendEmailWithAttachments(formData: FormData) {
     }
   });
 
+  const newStatus = (company.status === 'NOT_ASSIGNED' || company.status === 'ASSIGNED') ? 'EMAIL_SENT' : company.status;
+
   await prisma.company.update({
     where: { id: companyId },
     data: { 
-      status: "EMAIL_SENT",
+      status: newStatus,
       lockedById: null,
       lockedAt: null
     }
   });
 
   await prisma.activity.create({
-    data: { companyId, type: "EMAIL_SENT", description: `Initial email sent: ${subject}`, userId }
+    data: { companyId, type: "EMAIL_SENT", description: `Email sent: ${subject}`, userId }
   });
 
   return { success: true };

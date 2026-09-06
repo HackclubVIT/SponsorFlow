@@ -336,7 +336,10 @@ export default function CompanyProfilePage() {
     );
   }
 
-  const showComposer = (company?.lockedById === user?.id && company?.status === 'NOT_ASSIGNED') || company?.status === 'ASSIGNED' || company?.status === 'REPLIED' || company?.status === 'OPENED' || company?.status === 'INTERESTED';
+  const showComposer = 
+    (company?.lockedById === user?.id && company?.status === 'NOT_ASSIGNED') || 
+    (company?.assignment?.userId === user?.id && !['CONFIRMED', 'REJECTED'].includes(company?.status)) ||
+    (userRole === 'ADMIN' && !['CONFIRMED', 'REJECTED'].includes(company?.status));
 
   return (
     <div className="min-h-screen bg-gray-50/50 pb-12">
