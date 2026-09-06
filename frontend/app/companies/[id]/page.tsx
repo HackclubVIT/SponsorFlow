@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../../../lib/api';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -26,6 +26,7 @@ import { generatePersonalizedIntro, generateCompanySummary, suggestReply, draftF
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { sendEmail, sendEmailWithAttachments } from '../../../actions/gmail';
 import { useSession, signOut } from 'next-auth/react';
+import toast from 'react-hot-toast';
 
 export default function CompanyProfilePage() {
   const params = useParams();
@@ -58,9 +59,9 @@ export default function CompanyProfilePage() {
   const [suggestingReplyFor, setSuggestingReplyFor] = useState<string | null>(null);
   const [suggestedReply, setSuggestedReply] = useState('');
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      const fetchCompanyAndTemplates = async () => {
+  
+  const fetchData = useCallback(async () => {
+    
         try {
           const promises: any[] = [
             getCompanyById(params.id as string),
@@ -81,16 +82,21 @@ export default function CompanyProfilePage() {
             setUsers(results[2]);
           }
         } catch (error: any) {
-          alert('Failed to load data: ' + error.message);
+          toast.error('Failed to load data: ' + error.message);
           console.error("Full error:", error);
           router.push('/companies');
         } finally {
           setLoading(false);
         }
-      };
-      fetchCompanyAndTemplates();
+      
+  }, [params.id, router, user?.role]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchData();
     }
-  }, [params.id, router, status]);
+  }, [status, fetchData]);
+  
 
   const replacePlaceholders = (text: string) => {
     return text
@@ -119,29 +125,29 @@ export default function CompanyProfilePage() {
       await assignCompanyToMember(params.id as string, targetUserId);
       const companyData = await getCompanyById(params.id as string);
       setCompany(companyData);
-      alert('Company assignment updated successfully!');
+      toast.success('Company assignment updated successfully!');
     } catch (error: any) {
-      alert(error.message || 'Failed to assign company');
+      toast.error(error.message || 'Failed to assign company');
     }
   };
 
   const handleLock = async () => {
     try {
       await lockCompany(params.id as string);
-      alert('Lock acquired! You can now compose the first email (5 min limit).');
-      window.location.reload();
+      toast.success('Lock acquired! You can now compose the first email (5 min limit).');
+      await fetchData();
     } catch (error: any) {
-      alert(error.message || 'Failed to acquire lock.');
+      toast.error(error.message || 'Failed to acquire lock.');
     }
   };
 
   const handleUnlock = async () => {
     try {
       await unlockCompany(params.id as string);
-      alert('Lock released.');
-      window.location.reload();
+      toast.success('Lock released.');
+      await fetchData();
     } catch (error: any) {
-      alert(error.message || 'Failed to release lock.');
+      toast.error(error.message || 'Failed to release lock.');
     }
   };
 
@@ -163,10 +169,10 @@ export default function CompanyProfilePage() {
       }
       
       await sendEmailWithAttachments(formData);
-      alert('Email sent successfully!');
-      window.location.reload();
+      toast.success('Email sent successfully!');
+      await fetchData();
     } catch (error: any) {
-      alert(error.message || 'Failed to send email');
+      toast.error(error.message || 'Failed to send email');
     } finally {
       setSending(false);
     }
@@ -181,7 +187,7 @@ export default function CompanyProfilePage() {
         body: res.text + '\n\n' + prev.body
       }));
     } catch (error: any) {
-      alert(error.message || 'Failed to generate intro');
+      toast.error(error.message || 'Failed to generate intro');
     } finally {
       setGeneratingIntro(false);
     }
@@ -227,7 +233,7 @@ export default function CompanyProfilePage() {
       
       setComposer({ subject, body });
     } catch (error: any) {
-      alert(error.message || 'Failed to draft email');
+      toast.error(error.message || 'Failed to draft email');
       console.error(error);
     } finally {
       setDraftingEmail(false);
@@ -241,7 +247,7 @@ export default function CompanyProfilePage() {
       setCompany({ ...company, aiSummary: summaryText });
       setIsEditingSummary(false);
     } catch (error: any) {
-      alert(error.message || 'Failed to save description');
+      toast.error(error.message || 'Failed to save description');
     } finally {
       setSavingSummary(false);
     }
@@ -255,7 +261,7 @@ export default function CompanyProfilePage() {
       setCompany(companyData);
       setSummaryText(companyData?.aiSummary || '');
     } catch (error: any) {
-      alert(error.message || 'Failed to generate summary');
+      toast.error(error.message || 'Failed to generate summary');
     } finally {
       setGeneratingSummary(false);
     }
@@ -272,7 +278,7 @@ export default function CompanyProfilePage() {
       const companyData = await getCompanyById(params.id as string);
       setCompany(companyData);
     } catch (error: any) {
-      alert(error.message || 'Failed to add note');
+      toast.error(error.message || 'Failed to add note');
     } finally {
       setSubmittingNote(false);
     }
@@ -285,7 +291,7 @@ export default function CompanyProfilePage() {
       const res = await suggestReply(params.id as string, content);
       setSuggestedReply(res.suggestion);
     } catch (error: any) {
-      alert(error.message || 'Failed to generate suggestion');
+      toast.error(error.message || 'Failed to generate suggestion');
       setSuggestingReplyFor(null);
     }
   };
@@ -309,11 +315,11 @@ export default function CompanyProfilePage() {
       await scheduleFollowUp(params.id as string, new Date(followUpDate).toISOString(), followUpNote);
       setFollowUpDate('');
       setFollowUpNote('');
-      alert('Follow-up scheduled successfully!');
+      toast.success('Follow-up scheduled successfully!');
       const companyData = await getCompanyById(params.id as string);
       setCompany(companyData);
     } catch (error: any) {
-      alert(error.message || 'Failed to schedule follow-up');
+      toast.error(error.message || 'Failed to schedule follow-up');
     } finally {
       setSubmittingFollowUp(false);
     }

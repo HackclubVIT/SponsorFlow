@@ -242,9 +242,9 @@ export default function CompaniesPage() {
               <tbody className="divide-y divide-gray-100 bg-white">
                 {companies.map(c => (
                   <tr key={c.id} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="py-4 pl-6 pr-3">
-                      <div className="font-medium text-gray-900 flex items-center gap-2">
-                        {c.companyName}
+                    <td className="py-4 pl-6 pr-3 max-w-[200px] sm:max-w-[300px]">
+                        <div className="font-medium text-gray-900 flex items-center gap-2">
+                          <span className="truncate" title={c.companyName}>{c.companyName}</span>
                         {c.lockedById && c.lockedById !== user?.id && (
                           <svg className="h-4 w-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" title="Locked by another user">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />

@@ -6,6 +6,8 @@ import "./globals.css";
 
 import { Providers } from "./providers";
 
+import { Toaster } from 'react-hot-toast';
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -24,6 +26,7 @@ export default function RootLayout({
         <Providers>
           {children}
         </Providers>
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );
