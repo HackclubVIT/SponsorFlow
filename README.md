@@ -1,4 +1,4 @@
-<img width="4658" height="4879" alt="diagram" src="https://github.com/user-attachments/assets/88422bcc-9680-4575-a926-9ef7ce142e77" /># SponsorFlow
+# SponsorFlow
 
 SponsorFlow is an internal sponsorship CRM for the HackClub Finance Team, designed to streamline and organize sponsorship outreach.
 
