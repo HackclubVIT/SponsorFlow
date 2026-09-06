@@ -297,6 +297,52 @@ export default function AdminDashboard() {
                 </table>
               </div>
             </div>
+          
+            {/* RECENT REPLIES */}
+            <div className="mt-6 bg-white p-6 rounded-xl shadow-sm ring-1 ring-gray-900/5">
+              <h3 className="text-base font-semibold text-gray-900 mb-6">Recent Sponsor Replies (Across All Users)</h3>
+              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                <table className="min-w-full divide-y divide-gray-300">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Received By (Member)</th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Sponsor Company</th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Time</th>
+                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {stats?.recentReplies?.length > 0 ? stats.recentReplies.map((reply: any) => (
+                      <tr key={reply.id}>
+                        <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                          {reply.email?.sender?.name || 'Unknown User'} 
+                          <span className="block text-xs text-gray-500 font-normal">{reply.email?.sender?.email}</span>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          <span className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
+                            {reply.company?.companyName || 'Unknown Company'}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {new Date(reply.createdAt).toLocaleString()}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          <Link href={`/companies/${reply.companyId}`} className="text-indigo-600 hover:text-indigo-900 font-medium">
+                            View Thread &rarr;
+                          </Link>
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan={4} className="py-8 text-center text-sm text-gray-500">
+                          No replies found in the selected timeframe.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </>
         ) : null}
       </main>

@@ -25,6 +25,8 @@ const STATUS_BADGES: Record<string, string> = {
 };
 
 import { getCompanies } from '../../actions/companies';
+import { syncInboxReplies } from '../../actions/gmail';
+import toast from 'react-hot-toast';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
@@ -35,6 +37,7 @@ export default function MemberDashboard() {
   const [gmailStatus, setGmailStatus] = useState<any>({ connected: true, email: session?.user?.email });
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -61,6 +64,26 @@ export default function MemberDashboard() {
       fetchDashboardData();
     }
   }, [session, status, router]);
+
+  
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+      const res = await syncInboxReplies();
+      toast.success(`Inbox synced! Found ${res.count} new replies.`);
+      
+      // refresh companies
+      const compData = await getCompanies({ limit: 1000 });
+      const myCompanies = compData.data.filter((c: any) => 
+        c.assignment?.userId === (session?.user as any)?.id
+      );
+      setCompanies(myCompanies);
+    } catch (err: any) {
+      toast.error('Failed to sync: ' + err.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const myAssigned = companies.filter(c => c.assignment?.userId === (session?.user as any)?.id);
   
@@ -117,6 +140,20 @@ export default function MemberDashboard() {
                 Connect Gmail
               </button>
             )}
+            
+            {gmailStatus?.connected && (
+              <button 
+                onClick={handleSync}
+                disabled={syncing}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
+              >
+                <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {syncing ? 'Syncing...' : 'Sync Inbox'}
+              </button>
+            )}
+
             <div className="h-5 w-px bg-gray-200"></div>
             <NotificationBell />
             <div className="flex items-center gap-3">

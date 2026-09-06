@@ -83,7 +83,18 @@ export async function getDashboardStats(filters: { startDate?: string, endDate?:
       const mConfirmed = comps.filter(c => c.status === 'CONFIRMED').length;
       const mRaised = comps.reduce((acc, c) => acc + (c.amountRaised || 0), 0);
       
-      return {
+      const recentReplies = await prisma.reply.findMany({
+      where: { company: whereFilter },
+      include: {
+        company: { select: { id: true, companyName: true } },
+        email: { select: { sender: { select: { name: true, email: true } } } }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20
+    });
+
+    return {
+      recentReplies,
         id: m.id,
         name: m.name,
         assigned: comps.length,
