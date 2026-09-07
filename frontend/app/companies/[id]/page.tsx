@@ -186,6 +186,12 @@ export default function CompanyProfilePage() {
         ...prev,
         body: res.text + '\n\n' + prev.body
       }));
+
+      if (!company?.aiSummary) {
+        const updated = await getCompanyById(params.id as string);
+        setCompany(updated);
+        setSummaryText(updated?.aiSummary || '');
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to generate intro');
     } finally {
@@ -204,6 +210,12 @@ export default function CompanyProfilePage() {
       
       setComposer({ subject: subject || 'Sponsorship Opportunity', body: body || '' });
       setActiveTab('email');
+      
+      if (!company?.aiSummary) {
+        const updated = await getCompanyById(params.id as string);
+        setCompany(updated);
+        setSummaryText(updated?.aiSummary || '');
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to draft email');
     } finally {
@@ -530,9 +542,9 @@ export default function CompanyProfilePage() {
                         <button 
                           type="button"
                           onClick={handleDraftEmail}
-                          disabled={draftingEmail || !company?.aiSummary}
+                          disabled={draftingEmail}
                           className="text-xs text-indigo-600 font-medium hover:text-indigo-800 disabled:opacity-50 disabled:hover:text-indigo-600 transition-colors flex items-center gap-1"
-                          title={!company?.aiSummary ? "Generate an AI Profile first" : "Draft a complete email based on the company's profile"}
+                          title="Draft a complete email. Auto-generates company profile if missing."
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.92 12.38a1 1 0 00-.22-1.09l-7-7a.996.996 0 10-1.41 1.41l5.3 5.3H4v2h12.59l-5.3 5.3a.996.996 0 000 1.41c.19.2.44.3.7.3s.51-.1.71-.29l7-7c.09-.09.16-.21.21-.33z" /></svg>
                           {draftingEmail ? 'Drafting...' : 'Draft Full Email'}
@@ -540,9 +552,9 @@ export default function CompanyProfilePage() {
                         <button 
                           type="button"
                           onClick={handleGenerateIntro}
-                          disabled={generatingIntro || !company?.aiSummary}
+                          disabled={generatingIntro}
                           className="text-xs text-indigo-600 font-medium hover:text-indigo-800 disabled:opacity-50 disabled:hover:text-indigo-600 transition-colors flex items-center gap-1"
-                          title={!company?.aiSummary ? "Generate an AI Profile first" : "Generate just an intro paragraph"}
+                          title="Generate a custom intro paragraph. Auto-generates company profile if missing."
                         >
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                           {generatingIntro ? 'Generating...' : 'Magic Intro'}
