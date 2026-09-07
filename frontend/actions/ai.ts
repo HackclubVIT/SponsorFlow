@@ -9,7 +9,7 @@ const getModel = () => {
   const apiKey = process.env.GEMINI_API_KEY || '';
   if (!apiKey) return null;
   const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  return genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 };
 
 async function safeGenerate(prompt: string, fallback: string): Promise<string> {
