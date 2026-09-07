@@ -249,11 +249,11 @@ export async function suggestReply(companyId: string, content: string) {
   - Keep it under 3 short paragraphs.
   - Be polite and appreciative.
   - If they asked a question, address it professionally.
-  - Sign off the email politely using the sender's name: ${(session.user as any).name || 'Sponsorship Team'}
+  - Sign off the email politely using the sender's name: ${(session.user as any).name || 'Finance Team'}
   - IMPORTANT: Do not use em dashes (\u2014), en dashes (\u2013), or hyphens (-) to separate thoughts in sentences. Use commas, periods, or newlines instead.
   - Use markdown bolding (**word**) strategically on a few catchy, important words (like metrics, event names, or key value propositions) to attract the sponsor and draw their attention.`;
 
-  const fallback = `Thank you for getting back to us so quickly.\n\nWe appreciate your response and look forward to the possibility of collaborating. Please let me know if you need any further information from our end.\n\nBest,\n${(session.user as any).name || 'Sponsorship Team'}`;
+  const fallback = `Thank you for getting back to us so quickly.\n\nWe appreciate your response and look forward to the possibility of collaborating. Please let me know if you need any further information from our end.\n\nBest,\n${(session.user as any).name || 'Finance Team'}`;
   const suggestion = await safeGenerate(prompt, fallback);
   return { success: true, suggestion };
 }
@@ -301,9 +301,9 @@ Guidelines:
 - Do not use generic placeholders where facts are provided above.
 - IMPORTANT: Do not use em dashes (\u2014), en dashes (\u2013), or hyphens (-) to separate thoughts in sentences. Use commas, periods, or newlines instead.
   - Use markdown bolding (**word**) strategically on a few catchy, important words (like metrics, event names, or key value propositions) to attract the sponsor and draw their attention.
-- You can use ${(session.user as any).name || 'Sponsorship Team'} for the sender signature.`;
+- You can use ${(session.user as any).name || 'Finance Team'} for the sender signature.`;
 
-  const fallbackBase = `SUBJECT: Exploring a partnership with ${company.companyName}\n\nHi team,\n\nI love what you are doing at ${company.companyName}. We are looking for sponsors and think you would be a great fit. Let us chat!\n\nBest,\n${(session.user as any).name || 'Sponsorship Team'}`;
+  const fallbackBase = `SUBJECT: Exploring a partnership with ${company.companyName}\n\nHi team,\n\nI love what you are doing at ${company.companyName}. We are looking for sponsors and think you would be a great fit. Let us chat!\n\nBest,\n${(session.user as any).name || 'Finance Team'}`;
 
   let rawText = "";
   try {
@@ -374,7 +374,7 @@ Guidelines:
 - Do not use generic placeholders where facts are provided above.
 - IMPORTANT: Do not use em dashes (\u2014), en dashes (\u2013), or hyphens (-) to separate thoughts in sentences. Use commas, periods, or newlines instead.
   - Use markdown bolding (**word**) strategically on a few catchy, important words (like metrics, event names, or key value propositions) to attract the sponsor and draw their attention.
-- You can use ${(session.user as any).name || 'Sponsorship Team'} for the sender signature.`;
+- You can use ${(session.user as any).name || 'Finance Team'} for the sender signature.`;
 
   return { apiKey: process.env.GEMINI_API_KEY || "", prompt, companyName: company.companyName };
 }
