@@ -1,9 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  serverExternalPackages: ['nodemailer', '@prisma/client'],
 };
 
 export default nextConfig;

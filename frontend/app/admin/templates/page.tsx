@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { getTemplates, createTemplate, updateTemplate, deleteTemplate } from '../../../actions/templates';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<any[]>([]);
@@ -30,14 +31,16 @@ export default function TemplatesPage() {
     try {
       if (editingId) {
         await updateTemplate(editingId, form);
+        toast.success('Template updated');
       } else {
         await createTemplate(form);
+        toast.success('Template created');
       }
       setForm({ name: '', subject: '', body: '' });
       setEditingId(null);
       fetchTemplates();
     } catch (e: any) {
-      alert('Error: ' + e.message);
+      toast.error('Error: ' + e.message);
     }
   };
 
@@ -50,9 +53,10 @@ export default function TemplatesPage() {
     if (!confirm('Delete this template?')) return;
     try {
       await deleteTemplate(id);
+      toast.success('Template deleted');
       fetchTemplates();
     } catch (e) {
-      alert('Delete failed');
+      toast.error('Delete failed');
     }
   };
 

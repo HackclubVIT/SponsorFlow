@@ -1,7 +1,11 @@
+---
+timestamp: 2026-09-06T14-48-48Z
+slug: frontend-app-companies-id-page-tsx
+---
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-
+import { api } from '../../../lib/api';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { NotificationBell } from '../../../components/NotificationBell';
@@ -20,10 +24,11 @@ const STATUS_BADGES: Record<string, string> = {
 };
 
 import { getCompanyById, getTemplates, updateCompanySummary } from '../../../actions/companies';
-import { lockCompany, unlockCompany, addNote, scheduleFollowUp, assignCompanyToMember } from '../../../actions/mutations';
+import { lockCompany, unlockCompany, addNote, updateCompanyStatus, scheduleFollowUp, assignCompanyToMember } from '../../../actions/mutations';
 import { getUsers } from '../../../actions/users';
-import { generatePersonalizedIntro, generateCompanySummary, draftFullEmail } from '../../../actions/ai';
-import { sendEmailWithAttachments } from '../../../actions/gmail';
+import { generatePersonalizedIntro, generateCompanySummary, suggestReply, draftFullEmail, getDraftEmailPrompt } from '../../../actions/ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { sendEmail, sendEmailWithAttachments } from '../../../actions/gmail';
 import { useSession, signOut } from 'next-auth/react';
 import toast from 'react-hot-toast';
 
@@ -196,25 +201,45 @@ export default function CompanyProfilePage() {
   const handleDraftEmail = async () => {
     setDraftingEmail(true);
     try {
-      const { success, draft } = await draftFullEmail(params.id as string);
-      
-      if (!success || !draft) {
-        throw new Error('Failed to generate draft');
+      const { apiKey, prompt, companyName } = await getDraftEmailPrompt(params.id as string);
+      if (!apiKey) {
+        setComposer({ subject: 'API Key Missing', body: 'Please set GEMINI_API_KEY in your environment.'});
+        return;
       }
       
-      let rawText = draft;
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+      
+      let rawText = '';
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          const result = await model.generateContent(prompt);
+          rawText = result.response.text().trim();
+          break;
+        } catch (err: any) {
+          if (err.message?.includes('503') && retries > 1) {
+            retries--;
+            console.log('Google API overloaded (503). Retrying in 2 seconds... Retries left:', retries);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          } else {
+            throw err;
+          }
+        }
+      }
+      
       let subject = 'Sponsorship Opportunity';
       let body = rawText;
       const subjectMatch = rawText.match(/^SUBJECT:\s*(.+)$/im);
       if (subjectMatch) {
         subject = subjectMatch[1].trim();
-        body = rawText.replace(/^SUBJECT:\s*.+\n*/im, '').trim();
+        body = rawText.replace(subjectMatch[0], '').trim();
       }
       
       setComposer({ subject, body });
-      setActiveTab('email');
     } catch (error: any) {
       toast.error(error.message || 'Failed to draft email');
+      console.error(error);
     } finally {
       setDraftingEmail(false);
     }

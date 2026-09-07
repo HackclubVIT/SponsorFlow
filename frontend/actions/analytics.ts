@@ -69,7 +69,12 @@ export async function getDashboardStats(filters: { startDate?: string, endDate?:
 
     // Member Performance
     const members = await prisma.user.findMany({
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
         assignments: {
           include: { company: true }
         }
@@ -83,18 +88,7 @@ export async function getDashboardStats(filters: { startDate?: string, endDate?:
       const mConfirmed = comps.filter(c => c.status === 'CONFIRMED').length;
       const mRaised = comps.reduce((acc, c) => acc + (c.amountRaised || 0), 0);
       
-      const recentReplies = await prisma.reply.findMany({
-      where: { company: whereFilter },
-      include: {
-        company: { select: { id: true, companyName: true } },
-        email: { select: { sender: { select: { name: true, email: true } } } }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 20
-    });
-
-    return {
-      recentReplies,
+      return {
         id: m.id,
         name: m.name,
         assigned: comps.length,
@@ -103,6 +97,16 @@ export async function getDashboardStats(filters: { startDate?: string, endDate?:
         confirmed: mConfirmed,
         raised: mRaised
       };
+    });
+
+    // Recent Replies (top-level, separate from member loop)
+    const recentReplies = await prisma.reply.findMany({
+      include: {
+        company: { select: { id: true, companyName: true } },
+        email: { select: { sender: { select: { name: true, email: true } } } }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20
     });
 
     return {
@@ -114,10 +118,10 @@ export async function getDashboardStats(filters: { startDate?: string, endDate?:
       totalSponsorshipRaised,
       replyRate,
       industryStats,
-      memberPerformance
+      memberPerformance,
+      recentReplies
     };
   } catch (error: any) {
     throw new Error(error.message || 'Failed to fetch analytics');
   }
 }
-

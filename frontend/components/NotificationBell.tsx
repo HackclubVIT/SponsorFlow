@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../actions/mutations';
 import { Bell } from 'lucide-react';

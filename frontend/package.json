@@ -11,8 +11,6 @@
     "dependencies": {
         "@google/generative-ai": "^0.24.1",
         "@prisma/client": "^5.10.2",
-        "@react-oauth/google": "^0.13.5",
-        "@types/nodemailer": "^8.0.1",
         "clsx": "^2.0.0",
         "csv-parse": "^7.0.2",
         "googleapis": "^176.0.0",
@@ -30,6 +28,7 @@
     "devDependencies": {
         "@tailwindcss/postcss": "^4",
         "@types/node": "^20",
+        "@types/nodemailer": "^8.0.1",
         "@types/react": "^19",
         "@types/react-dom": "^19",
         "eslint": "^9",

@@ -54,6 +54,10 @@ export async function getCompanyById(id: string) {
       },
       emails: {
         orderBy: { createdAt: 'desc' }
+      },
+      activities: {
+        orderBy: { createdAt: 'desc' },
+        include: { user: { select: { id: true, name: true } } }
       }
     }
   });

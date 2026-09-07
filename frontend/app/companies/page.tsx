@@ -90,11 +90,11 @@ export default function CompaniesPage() {
       const formData = new FormData();
       formData.append('file', file);
       const res = await importCompanies(formData);
-      alert(`Import successful: ${res.count} companies imported.`);
+      toast.success(`Import successful: ${res.count} companies imported.`);
       fetchCompanies();
     } catch (error: any) {
       console.error(error);
-      alert('Import failed: ' + (error.message || 'Unknown error'));
+      toast.error('Import failed: ' + (error.message || 'Unknown error'));
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -105,9 +105,10 @@ export default function CompaniesPage() {
     if (!confirm('Are you sure you want to delete this company?')) return;
     try {
       await deleteCompany(id);
+      toast.success('Company deleted successfully');
       fetchCompanies();
     } catch (error) {
-      alert('Failed to delete. Make sure you are an Admin.');
+      toast.error('Failed to delete. Make sure you are an Admin.');
     }
   };
 

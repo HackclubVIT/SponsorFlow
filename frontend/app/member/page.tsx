@@ -27,7 +27,7 @@ const STATUS_BADGES: Record<string, string> = {
 import { getCompanies } from '../../actions/companies';
 import { syncInboxReplies } from '../../actions/gmail';
 import toast from 'react-hot-toast';
-import { useSession, signOut } from 'next-auth/react';
+import { useSession, signOut, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 export default function MemberDashboard() {
@@ -136,7 +136,7 @@ export default function MemberDashboard() {
                 {gmailStatus.email}
               </div>
             ) : (
-              <button className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm transition-colors">
+              <button onClick={() => signIn('google')} className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm transition-colors">
                 Connect Gmail
               </button>
             )}

@@ -68,6 +68,7 @@ export default function AdminDashboard() {
               <Link href="/admin" className="text-sm font-medium text-indigo-600 border-b-2 border-indigo-600 py-5">Analytics</Link>
               <Link href="/companies" className="text-sm font-medium text-gray-500 hover:text-gray-900 py-5 transition-colors">Directory</Link>
               <Link href="/users" className="text-sm font-medium text-gray-500 hover:text-gray-900 py-5 transition-colors">Users</Link>
+              <Link href="/admin/templates" className="text-sm font-medium text-gray-500 hover:text-gray-900 py-5 transition-colors">Templates</Link>
             </nav>
           </div>
           

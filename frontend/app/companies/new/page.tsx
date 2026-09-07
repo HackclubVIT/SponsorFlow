@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createCompany } from '../../../actions/companies';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 export default function NewCompanyPage() {
   const router = useRouter();
@@ -22,9 +23,10 @@ export default function NewCompanyPage() {
     setLoading(true);
     try {
       await createCompany(formData);
+      toast.success('Company added successfully');
       router.push('/companies');
     } catch (error: any) {
-      alert('Failed to add target: ' + (error.message || 'Validation error'));
+      toast.error('Failed to add target: ' + (error.message || 'Validation error'));
     } finally {
       setLoading(false);
     }

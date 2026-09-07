@@ -106,16 +106,34 @@ export async function unlockCompany(companyId: string) {
   const userId = (session.user as any).id;
   const userRole = (session.user as any).role;
 
-  await prisma.company.updateMany({
-    where: {
-      id: companyId,
-      ...(userRole !== 'ADMIN' ? { lockedById: userId } : {})
-    },
-    data: {
-      lockedById: null,
-      lockedAt: null
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    include: { assignment: true }
+  });
+
+  if (!company) throw new Error("Company not found");
+
+  if (userRole !== 'ADMIN' && company.lockedById !== userId) {
+    throw new Error('Unauthorized to unlock this company');
+  }
+
+  const isJustAssigned = company.status === 'ASSIGNED';
+
+  await prisma.$transaction(async (tx) => {
+    await tx.company.update({
+      where: { id: companyId },
+      data: {
+        lockedById: null,
+        lockedAt: null,
+        ...(isJustAssigned ? { status: 'NOT_ASSIGNED' } : {})
+      }
+    });
+
+    if (isJustAssigned && company.assignment) {
+      await tx.assignment.delete({ where: { companyId } });
     }
   });
+
   return { success: true };
 }
 

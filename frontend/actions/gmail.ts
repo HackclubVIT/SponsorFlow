@@ -239,12 +239,14 @@ export async function sendEmailWithAttachments(formData: FormData) {
     .replace(/=+$/, "");
 
   try {
-    await gmail.users.messages.send({
+    const sendResult = await gmail.users.messages.send({
       userId: "me",
       requestBody: {
         raw: rawMessage,
       },
     });
+    var sentMessageId = sendResult.data.id;
+    var sentThreadId = sendResult.data.threadId;
   } catch (error: any) {
     console.error("Gmail API Error:", error);
     if (error.code === 429) {
@@ -265,9 +267,15 @@ export async function sendEmailWithAttachments(formData: FormData) {
       sentAt: new Date(),
       companyId,
       senderId: userId,
-      messageId: typeof messageId !== 'undefined' ? messageId : undefined,
-      threadId: typeof threadId !== 'undefined' ? threadId : undefined
+      messageId: sentMessageId || null,
+      threadId: sentThreadId || null
     }
+  });
+
+  await prisma.assignment.upsert({
+    where: { companyId },
+    update: { userId },
+    create: { companyId, userId }
   });
 
   const newStatus = (company.status === 'NOT_ASSIGNED' || company.status === 'ASSIGNED') ? 'EMAIL_SENT' : company.status;

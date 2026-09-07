@@ -6,14 +6,16 @@ import { authOptions } from '../app/api/auth/[...nextauth]/route';
 
 export async function getTemplates() {
   const session = await getServerSession(authOptions);
-  if (!session?.user) throw new Error('Unauthorized');
+  if (!session?.user || (session.user as any).role !== 'ADMIN') throw new Error('Unauthorized');
   return await prisma.emailTemplate.findMany({ orderBy: { createdAt: 'desc' } });
 }
 
 export async function createTemplate(data: { name: string, subject: string, body: string }) {
   const session = await getServerSession(authOptions);
-  if (!session?.user) throw new Error('Unauthorized');
+  if (!session?.user || (session.user as any).role !== 'ADMIN') throw new Error('Unauthorized');
   const userId = (session.user as any).id;
+  
+  if (!data.name || !data.subject || !data.body) throw new Error('Missing fields');
   
   return await prisma.emailTemplate.create({
     data: {
@@ -25,7 +27,9 @@ export async function createTemplate(data: { name: string, subject: string, body
 
 export async function updateTemplate(id: string, data: { name: string, subject: string, body: string }) {
   const session = await getServerSession(authOptions);
-  if (!session?.user) throw new Error('Unauthorized');
+  if (!session?.user || (session.user as any).role !== 'ADMIN') throw new Error('Unauthorized');
+  
+  if (!data.name || !data.subject || !data.body) throw new Error('Missing fields');
   
   return await prisma.emailTemplate.update({
     where: { id },
@@ -35,9 +39,13 @@ export async function updateTemplate(id: string, data: { name: string, subject: 
 
 export async function deleteTemplate(id: string) {
   const session = await getServerSession(authOptions);
-  if (!session?.user) throw new Error('Unauthorized');
+  if (!session?.user || (session.user as any).role !== 'ADMIN') throw new Error('Unauthorized');
   
-  return await prisma.emailTemplate.delete({
-    where: { id }
-  });
+  try {
+    return await prisma.emailTemplate.delete({
+      where: { id }
+    });
+  } catch (error) {
+    throw new Error('Template not found or already deleted');
+  }
 }
