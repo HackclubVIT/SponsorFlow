@@ -101,7 +101,7 @@ export async function importCompanies(formData: FormData) {
   if (records.length === 0) throw new Error('No records found in CSV');
 
   let successCount = 0;
-  for (const record of records) {
+  for (const record of records as any[]) {
     if (!record.companyName) continue;
     try {
       await prisma.company.create({

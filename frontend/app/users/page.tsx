@@ -105,7 +105,7 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {(Array.isArray(users) ? users : users.data || []).map(u => (
+                {users.map((u: any) => (
                   <tr key={u.id} className="hover:bg-gray-50/50 transition-colors group">
                     <td className="py-4 pl-6 pr-3">
                       <div className="font-medium text-gray-900 flex items-center gap-3">
@@ -135,7 +135,7 @@ export default function UsersPage() {
               </tbody>
             </table>
             
-            {!loading && (!users || (Array.isArray(users) ? users.length === 0 : !users.data?.length)) && (
+            {!loading && users.length === 0 && (
               <div className="text-center py-16 px-6">
                 <h3 className="mt-2 text-sm font-semibold text-gray-900">No users found</h3>
                 <p className="mt-1 text-sm text-gray-500">

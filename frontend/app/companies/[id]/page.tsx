@@ -196,22 +196,13 @@ export default function CompanyProfilePage() {
   const handleDraftEmail = async () => {
     setDraftingEmail(true);
     try {
-      const { success, draft } = await draftFullEmail(params.id as string);
+      const { success, subject, body } = await draftFullEmail(params.id as string);
       
-      if (!success || !draft) {
+      if (!success) {
         throw new Error('Failed to generate draft');
       }
       
-      let rawText = draft;
-      let subject = 'Sponsorship Opportunity';
-      let body = rawText;
-      const subjectMatch = rawText.match(/^SUBJECT:\s*(.+)$/im);
-      if (subjectMatch) {
-        subject = subjectMatch[1].trim();
-        body = rawText.replace(/^SUBJECT:\s*.+\n*/im, '').trim();
-      }
-      
-      setComposer({ subject, body });
+      setComposer({ subject: subject || 'Sponsorship Opportunity', body: body || '' });
       setActiveTab('email');
     } catch (error: any) {
       toast.error(error.message || 'Failed to draft email');
@@ -264,27 +255,6 @@ export default function CompanyProfilePage() {
     }
   };
 
-  const handleSuggestReply = async (replyId: string, content: string) => {
-    setSuggestingReplyFor(replyId);
-    setSuggestedReply('');
-    try {
-      const res = await suggestReply(params.id as string, content);
-      setSuggestedReply(res.suggestion);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to generate suggestion');
-      setSuggestingReplyFor(null);
-    }
-  };
-
-  const acceptSuggestedReply = () => {
-    setComposer({
-      subject: `Re: Sponsorship with ${company?.companyName}`,
-      body: suggestedReply
-    });
-    setSuggestingReplyFor(null);
-    setSuggestedReply('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   const handleScheduleFollowUp = async (e: React.FormEvent) => {
     e.preventDefault();
