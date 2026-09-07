@@ -16,7 +16,10 @@ export async function getCompanies(filters?: { search?: string, status?: string,
     where.OR = [
       { companyName: { contains: search, mode: 'insensitive' } },
       { contactPerson: { contains: search, mode: 'insensitive' } },
-      { email: { contains: search, mode: 'insensitive' } }
+      { email: { contains: search, mode: 'insensitive' } },
+      { industry: { contains: search, mode: 'insensitive' } },
+      { website: { contains: search, mode: 'insensitive' } },
+      { location: { contains: search, mode: 'insensitive' } }
     ];
   }
   if (status) where.status = status;

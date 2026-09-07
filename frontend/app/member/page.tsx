@@ -99,8 +99,13 @@ export default function MemberDashboard() {
   }, [myAssigned]);
 
   const filteredCompanies = myAssigned.filter(c => {
-    const matchesSearch = c.companyName.toLowerCase().includes(search.toLowerCase()) || 
-                          (c.contactPerson && c.contactPerson.toLowerCase().includes(search.toLowerCase()));
+    const term = search.toLowerCase();
+    const matchesSearch = 
+      c.companyName.toLowerCase().includes(term) || 
+      (c.contactPerson && c.contactPerson.toLowerCase().includes(term)) ||
+      (c.industry && c.industry.toLowerCase().includes(term)) ||
+      (c.location && c.location.toLowerCase().includes(term)) ||
+      (c.website && c.website.toLowerCase().includes(term));
     const matchesStatus = statusFilter ? c.status === statusFilter : true;
     return matchesSearch && matchesStatus;
   });
