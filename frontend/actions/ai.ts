@@ -7,9 +7,9 @@ import { authOptions } from '../app/api/auth/[...nextauth]/route';
 
 const getModel = () => {
   const apiKey = process.env.GEMINI_API_KEY || '';
-  if (!apiKey) return null;
+  if (!apiKey) throw new Error('GEMINI_API_KEY environment variable is missing.');
   const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+  return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 };
 
 async function safeGenerate(prompt: string, fallback: string): Promise<string> {
@@ -18,15 +18,15 @@ async function safeGenerate(prompt: string, fallback: string): Promise<string> {
   try {
     const result = await model.generateContent(prompt);
     return result.response.text().trim();
-  } catch (error) {
+  } catch (error: any) {
     console.error('AI Generation Failed:', error);
-    return fallback;
+    return `ERROR: ${error.message || String(error)}\n\nPlease show this to the AI.`;
   }
 }
 
 const getSearchModel = () => {
   const apiKey = process.env.GEMINI_API_KEY || '';
-  if (!apiKey) return null;
+  if (!apiKey) throw new Error('GEMINI_API_KEY environment variable is missing.');
   const genAI = new GoogleGenerativeAI(apiKey);
   return genAI.getGenerativeModel({
     model: 'gemini-1.5-flash',
@@ -40,9 +40,10 @@ async function safeGenerateWithSearch(prompt: string, fallback: string): Promise
   try {
     const result = await model.generateContent(prompt);
     return result.response.text().trim();
-  } catch (error) {
+  } catch (error: any) {
     console.error('AI Search Generation Failed:', error);
-    return fallback;
+    // Temporary: return the actual error string so the user can see what's wrong in the UI
+    return `ERROR: ${error.message || String(error)}\n\nPlease show this to the AI.`;
   }
 }
 
