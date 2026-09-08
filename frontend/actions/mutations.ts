@@ -209,3 +209,40 @@ export async function markNotificationRead(id: string) {
   });
 }
 
+// --- BULK ACTIONS ---
+
+export async function bulkChangeStatus(companyIds: string[], status: any) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || (session.user as any).role !== 'ADMIN') throw new Error('Unauthorized');
+  
+  await prisma.company.updateMany({
+    where: { id: { in: companyIds } },
+    data: { status }
+  });
+  return { success: true };
+}
+
+export async function bulkAssignCompanies(companyIds: string[], userId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || (session.user as any).role !== 'ADMIN') throw new Error('Unauthorized');
+  
+  for (const id of companyIds) {
+    await prisma.assignment.upsert({
+      where: { companyId: id },
+      update: { userId },
+      create: { companyId: id, userId }
+    });
+    
+    // Auto-update status to ASSIGNED if they were NOT_ASSIGNED
+    const company = await prisma.company.findUnique({ where: { id } });
+    if (company?.status === 'NOT_ASSIGNED') {
+      await prisma.company.update({
+        where: { id },
+        data: { status: 'ASSIGNED' }
+      });
+    }
+  }
+  
+  return { success: true };
+}
+

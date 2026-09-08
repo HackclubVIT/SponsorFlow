@@ -19,6 +19,8 @@ const STATUS_BADGES: Record<string, string> = {
 
 import { getCompanies, deleteCompany, importCompanies } from '../../actions/companies';
 import { syncInboxReplies } from '../../actions/gmail';
+import { bulkChangeStatus, bulkAssignCompanies } from '../../actions/mutations';
+import { getUsers } from '../../actions/users';
 import toast from 'react-hot-toast';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -38,6 +40,14 @@ export default function CompaniesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+
+  // Bulk action states
+  const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([]);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [isBulkActing, setIsBulkActing] = useState(false);
+  const [bulkActionType, setBulkActionType] = useState<'' | 'status' | 'assign'>('');
+  const [bulkStatusValue, setBulkStatusValue] = useState('');
+  const [bulkAssignValue, setBulkAssignValue] = useState('');
 
   
   const handleSync = async () => {
@@ -81,6 +91,12 @@ export default function CompaniesPage() {
     }
   }, [page, search, statusFilter, status, router]);
 
+  useEffect(() => {
+    if (status === 'authenticated' && user?.role === 'ADMIN') {
+      getUsers().then(setTeamMembers).catch(console.error);
+    }
+  }, [status, user?.role]);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -98,6 +114,44 @@ export default function CompaniesPage() {
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedCompanyIds(companies.map(c => c.id));
+    } else {
+      setSelectedCompanyIds([]);
+    }
+  };
+
+  const handleSelectRow = (id: string) => {
+    setSelectedCompanyIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const executeBulkAction = async () => {
+    if (!bulkActionType) return;
+    if (bulkActionType === 'status' && !bulkStatusValue) return toast.error('Select a status');
+    if (bulkActionType === 'assign' && !bulkAssignValue) return toast.error('Select a team member');
+
+    setIsBulkActing(true);
+    try {
+      if (bulkActionType === 'status') {
+        await bulkChangeStatus(selectedCompanyIds, bulkStatusValue);
+        toast.success(`Status updated for ${selectedCompanyIds.length} companies`);
+      } else if (bulkActionType === 'assign') {
+        await bulkAssignCompanies(selectedCompanyIds, bulkAssignValue);
+        toast.success(`Assigned ${selectedCompanyIds.length} companies`);
+      }
+      setSelectedCompanyIds([]);
+      setBulkActionType('');
+      fetchCompanies();
+    } catch (err: any) {
+      toast.error('Bulk action failed: ' + err.message);
+    } finally {
+      setIsBulkActing(false);
     }
   };
 
@@ -268,7 +322,20 @@ export default function CompaniesPage() {
             <table className="min-w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-gray-50/50">
                 <tr>
-                  <th scope="col" className="py-3.5 pl-6 pr-3 font-semibold text-gray-900 border-b border-gray-200">Company</th>
+                  <th scope="col" className="relative px-6 sm:w-12 sm:px-6 border-b border-gray-200">
+                    <input
+                      type="checkbox"
+                      className="absolute left-6 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer"
+                      ref={(input) => {
+                        if (input) {
+                          input.indeterminate = selectedCompanyIds.length > 0 && selectedCompanyIds.length < companies.length;
+                        }
+                      }}
+                      checked={companies.length > 0 && selectedCompanyIds.length === companies.length}
+                      onChange={handleSelectAll}
+                    />
+                  </th>
+                  <th scope="col" className="py-3.5 pl-3 pr-3 font-semibold text-gray-900 border-b border-gray-200">Company</th>
                   <th scope="col" className="px-3 py-3.5 font-semibold text-gray-900 border-b border-gray-200">Contact</th>
                   <th scope="col" className="px-3 py-3.5 font-semibold text-gray-900 border-b border-gray-200">Assigned To</th>
                   <th scope="col" className="px-3 py-3.5 font-semibold text-gray-900 border-b border-gray-200">Status</th>
@@ -279,8 +346,20 @@ export default function CompaniesPage() {
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {companies.map(c => (
-                  <tr key={c.id} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="py-4 pl-6 pr-3 max-w-[200px] sm:max-w-[300px]">
+                  <tr key={c.id} className={`hover:bg-gray-50/50 transition-colors group ${selectedCompanyIds.includes(c.id) ? 'bg-indigo-50/30' : ''}`}>
+                    <td className="relative px-6 sm:w-12 sm:px-6">
+                      {selectedCompanyIds.includes(c.id) && (
+                        <div className="absolute inset-y-0 left-0 w-0.5 bg-indigo-600"></div>
+                      )}
+                      <input
+                        type="checkbox"
+                        className="absolute left-6 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer"
+                        value={c.id}
+                        checked={selectedCompanyIds.includes(c.id)}
+                        onChange={() => handleSelectRow(c.id)}
+                      />
+                    </td>
+                    <td className="py-4 pl-3 pr-3 max-w-[200px] sm:max-w-[300px]">
                         <div className="font-medium text-gray-900 flex items-center gap-2">
                           <span className="truncate" title={c.companyName}>{c.companyName}</span>
                         {c.lockedById && c.lockedById !== user?.id && (
@@ -392,7 +471,83 @@ export default function CompaniesPage() {
             </div>
           </div>
         </div>
+
+        {/* Floating Bulk Action Bar */}
+        {selectedCompanyIds.length > 0 && user?.role === 'ADMIN' && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-8 duration-300">
+            <div className="bg-gray-900 shadow-2xl rounded-2xl p-2 pl-6 pr-4 flex items-center gap-6 text-white ring-1 ring-white/10">
+              <span className="font-medium text-sm whitespace-nowrap">
+                {selectedCompanyIds.length} selected
+              </span>
+              <div className="h-6 w-px bg-gray-700"></div>
+              
+              <div className="flex items-center gap-2">
+                <select 
+                  className="bg-gray-800 text-sm text-white rounded-lg border-0 py-1.5 pl-3 pr-8 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  value={bulkActionType}
+                  onChange={e => setBulkActionType(e.target.value as any)}
+                >
+                  <option value="">Choose action...</option>
+                  <option value="status">Change Status</option>
+                  <option value="assign">Assign To</option>
+                </select>
+
+                {bulkActionType === 'status' && (
+                  <select 
+                    className="bg-gray-800 text-sm text-white rounded-lg border-0 py-1.5 pl-3 pr-8 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    value={bulkStatusValue}
+                    onChange={e => setBulkStatusValue(e.target.value)}
+                  >
+                    <option value="">Select status...</option>
+                    <option value="NOT_ASSIGNED">Unassigned</option>
+                    <option value="ASSIGNED">Assigned</option>
+                    <option value="EMAIL_DRAFTED">Email Drafted</option>
+                    <option value="EMAIL_SENT">Email Sent</option>
+                    <option value="REPLIED">Replied</option>
+                    <option value="CONFIRMED">Confirmed</option>
+                  </select>
+                )}
+
+                {bulkActionType === 'assign' && (
+                  <select 
+                    className="bg-gray-800 text-sm text-white rounded-lg border-0 py-1.5 pl-3 pr-8 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    value={bulkAssignValue}
+                    onChange={e => setBulkAssignValue(e.target.value)}
+                  >
+                    <option value="">Select user...</option>
+                    {teamMembers.map(tm => (
+                      <option key={tm.id} value={tm.id}>{tm.name}</option>
+                    ))}
+                  </select>
+                )}
+
+                {bulkActionType && (
+                  <button
+                    onClick={executeBulkAction}
+                    disabled={isBulkActing}
+                    className="bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-semibold py-1.5 px-4 rounded-lg transition-colors disabled:opacity-50 ml-2"
+                  >
+                    {isBulkActing ? 'Applying...' : 'Apply'}
+                  </button>
+                )}
+              </div>
+              
+              <div className="h-6 w-px bg-gray-700 ml-2"></div>
+              
+              <button 
+                onClick={() => setSelectedCompanyIds([])}
+                className="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-gray-800 transition-colors"
+                title="Clear selection"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
       </main>
+
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && (
