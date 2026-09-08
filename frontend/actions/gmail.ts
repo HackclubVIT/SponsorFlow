@@ -97,6 +97,22 @@ export async function sendEmail(companyId: string, subject: string, body: string
   }
 
   const gmail = await getAuthenticatedGmailClient(userId);
+
+  // 3-day cool-down for non-admins
+  if (userRole !== 'ADMIN') {
+    const lastEmail = await prisma.email.findFirst({
+      where: { companyId, status: 'SENT' },
+      orderBy: { sentAt: 'desc' }
+    });
+    
+    if (lastEmail && lastEmail.sentAt) {
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+      if (lastEmail.sentAt > threeDaysAgo) {
+        throw new Error('Cool-down active: Members must wait at least 3 days before sending another email to this company.');
+      }
+    }
+  }
+
   const rawMessage = await createMimeEmail(company.email, subject, body);
 
   try {
@@ -202,6 +218,21 @@ export async function sendEmailWithAttachments(formData: FormData) {
 
   const gmail = await getAuthenticatedGmailClient(userId);
   
+  // 3-day cool-down for non-admins
+  if (userRole !== 'ADMIN') {
+    const lastEmail = await prisma.email.findFirst({
+      where: { companyId, status: 'SENT' },
+      orderBy: { sentAt: 'desc' }
+    });
+    
+    if (lastEmail && lastEmail.sentAt) {
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+      if (lastEmail.sentAt > threeDaysAgo) {
+        throw new Error('Cool-down active: Members must wait at least 3 days before sending another email to this company.');
+      }
+    }
+  }
+
   const attachments = [];
   // formData.getAll("attachments") gets all files appended
   const fileEntries = formData.getAll("attachments");

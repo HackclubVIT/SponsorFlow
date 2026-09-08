@@ -59,7 +59,10 @@ export default function CompanyProfilePage() {
   const [suggestingReplyFor, setSuggestingReplyFor] = useState<string | null>(null);
   const [suggestedReply, setSuggestedReply] = useState('');
 
-  
+  const lastSentEmail = company?.emails?.find((e: any) => e.status === 'SENT');
+  const daysSinceLastEmail = lastSentEmail && lastSentEmail.sentAt ? (Date.now() - new Date(lastSentEmail.sentAt).getTime()) / (1000 * 60 * 60 * 24) : null;
+  const isCoolDownActive = (user?.role as any) !== 'ADMIN' && daysSinceLastEmail !== null && daysSinceLastEmail < 3;
+
   const fetchData = useCallback(async () => {
     
         try {
@@ -598,20 +601,27 @@ export default function CompanyProfilePage() {
                     >
                       {previewMode ? 'Edit Mode' : 'Preview Format'}
                     </button>
-                    <button 
-                      disabled={sending || !company?.email} 
-                      type="submit" 
-                      className="flex-1 bg-indigo-600 text-white py-2 rounded-md font-medium text-sm hover:bg-indigo-500 disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm transition-colors"
-                    >
-                      {sending ? (
-                        <>
-                          <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                          Sending via Gmail API...
-                        </>
-                      ) : (
-                        `Send Email to ${company?.email || 'Missing Email'}`
-                      )}
-                    </button>
+                    {isCoolDownActive ? (
+                      <div className="flex-1 bg-amber-50 text-amber-700 border border-amber-200 py-2 rounded-md font-medium text-sm flex items-center justify-center gap-2 shadow-sm text-center px-4">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Cool-down active: Must wait {Math.ceil(3 - (daysSinceLastEmail || 0))} more days
+                      </div>
+                    ) : (
+                      <button 
+                        disabled={sending || !company?.email} 
+                        type="submit" 
+                        className="flex-1 bg-indigo-600 text-white py-2 rounded-md font-medium text-sm hover:bg-indigo-500 disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm transition-colors"
+                      >
+                        {sending ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            Sending via Gmail API...
+                          </>
+                        ) : (
+                          `Send Email to ${company?.email || 'Missing Email'}`
+                        )}
+                      </button>
+                    )}
                   </div>
                 </form>
               ) : (
