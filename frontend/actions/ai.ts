@@ -24,6 +24,28 @@ async function safeGenerate(prompt: string, fallback: string): Promise<string> {
   }
 }
 
+const getSearchModel = () => {
+  const apiKey = process.env.GEMINI_API_KEY || '';
+  if (!apiKey) return null;
+  const genAI = new GoogleGenerativeAI(apiKey);
+  return genAI.getGenerativeModel({
+    model: 'gemini-3.5-flash',
+    tools: [{ googleSearch: {} }]
+  });
+};
+
+async function safeGenerateWithSearch(prompt: string, fallback: string): Promise<string> {
+  const model = getSearchModel();
+  if (!model) return fallback;
+  try {
+    const result = await model.generateContent(prompt);
+    return result.response.text().trim();
+  } catch (error) {
+    console.error('AI Search Generation Failed:', error);
+    return fallback;
+  }
+}
+
 // Fetch and extract text content from a company's website
 async function fetchWebsiteContent(url: string): Promise<string> {
   try {
@@ -76,8 +98,8 @@ async function fetchWebsiteContent(url: string): Promise<string> {
 
 // Ensure a company has an AI summary before drafting emails.
 // If missing, auto-generates one using website scraping + AI.
-async function ensureCompanySummary(company: any): Promise<string> {
-  if (company.aiSummary && company.aiSummary.trim().length > 10) {
+async function ensureCompanySummary(company: any, forceRegenerate = false): Promise<string> {
+  if (!forceRegenerate && company.aiSummary && company.aiSummary.trim().length > 10) {
     return company.aiSummary;
   }
 
@@ -101,14 +123,14 @@ async function ensureCompanySummary(company: any): Promise<string> {
     ${websiteContent}
     ---
     
-    Based on the ACTUAL website content above, include these exact headers:
+    Based on the ACTUAL website content above AND Google Search, include these exact headers:
     - **Industry Position:**
     - **Key Products/Services:**
-    - **Developer Programs / APIs:** (if applicable, based on what you see on their site)
-    - **CSR / Initiatives:** (if mentioned on site)
+    - **Developer Programs / APIs:** (search for this if missing from the homepage)
+    - **CSR / Initiatives:** (search for this if missing from the homepage)
     - **Why They Might Sponsor a Tech Event:** (infer from their products, hiring, or developer outreach)
     
-    Be factual. Only include information you can verify from the website content. Keep each bullet to 1-2 sentences.`
+    Be factual. If the website content doesn't mention something, use Google Search to find accurate and up-to-date information. Keep each bullet to 1-2 sentences.`
     : `Act as an expert corporate researcher. Create a very concise, structured summary (in markdown bullet points) about the company: ${company.companyName}.
     
     Known details:
@@ -122,7 +144,7 @@ async function ensureCompanySummary(company: any): Promise<string> {
     - **CSR / Initiatives:**
     - **Recent News / Activities:**
     
-    Make educated guesses based on the industry and company name if they are famous, otherwise extract general patterns for a company in that sector. Keep each bullet to 1 sentence.`;
+    IMPORTANT: Since we don't have website content, please use Google Search to find accurate and up-to-date information about this specific company. Do not use generic patterns. Keep each bullet to 1-2 sentences.`;
 
   const fallback = `- **Industry Position:** Company in the ${company.industry || 'tech'} sector.
 - **Key Products/Services:** Products and services in their core industry.
@@ -130,7 +152,7 @@ async function ensureCompanySummary(company: any): Promise<string> {
 - **CSR / Initiatives:** Unknown.
 - **Recent News / Activities:** No recent data available.`;
 
-  const summary = await safeGenerate(prompt, fallback);
+  const summary = await safeGenerateWithSearch(prompt, fallback);
 
   // Save it to the database so we don't have to do this again
   await prisma.company.update({
@@ -174,63 +196,8 @@ export async function generateCompanySummary(companyId: string) {
   const company = await prisma.company.findUnique({ where: { id: companyId } });
   if (!company) throw new Error('Company not found');
 
-  // Scrape website if available
-  let websiteContent = '';
-  if (company.website) {
-    websiteContent = await fetchWebsiteContent(company.website);
-  }
-
-  const hasWebsiteData = websiteContent.length > 100;
-
-  const prompt = hasWebsiteData
-    ? `Act as an expert corporate researcher. Create a very concise, structured summary (in markdown bullet points) about the company: ${company.companyName}.
-    
-    Known details:
-    Industry: ${company.industry || 'Unknown'}
-    Website: ${company.website}
-    
-    Here is real content scraped from their website:
-    ---
-    ${websiteContent}
-    ---
-    
-    Based on the ACTUAL website content above, include these exact headers:
-    - **Industry Position:**
-    - **Key Products/Services:**
-    - **Developer Programs / APIs:** (if applicable, based on what you see on their site)
-    - **CSR / Initiatives:** (if mentioned on site)
-    - **Why They Might Sponsor a Tech Event:** (infer from their products, hiring, or developer outreach)
-    
-    Be factual. Only include information you can verify from the website content. Keep each bullet to 1-2 sentences.`
-    : `Act as an expert corporate researcher. Create a very concise, structured summary (in markdown bullet points) about the company: ${company.companyName}.
-    
-    Known details:
-    Industry: ${company.industry || 'Unknown'}
-    Website: ${company.website || 'Unknown'}
-    
-    Include these exact headers:
-    - **Industry Position:**
-    - **Key Products/Services:**
-    - **Developer Programs / APIs:** (if applicable)
-    - **CSR / Initiatives:**
-    - **Recent News / Activities:**
-    
-    Make educated guesses based on the industry and company name if they are famous, otherwise extract general patterns for a company in that sector. Keep each bullet to 1 sentence.`;
-
-  const fallback = `- **Industry Position:** Leading company in the ${company.industry || 'tech'} sector.
-- **Key Products/Services:** Enterprise software and consumer solutions.
-- **Developer Programs / APIs:** Active developer community and open APIs.
-- **CSR / Initiatives:** Committed to sustainability and education.
-- **Recent News / Activities:** Recently expanded their core product line.`;
-
-  const summary = await safeGenerate(prompt, fallback);
-
-  await prisma.company.update({
-    where: { id: companyId },
-    data: { aiSummary: summary }
-  });
-
-  return { success: true, summary };
+  const summary = await ensureCompanySummary(company, true);
+  return { success: true, text: summary };
 }
 
 export async function suggestReply(companyId: string, content: string) {
