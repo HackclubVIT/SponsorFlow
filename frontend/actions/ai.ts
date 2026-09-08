@@ -20,7 +20,18 @@ async function safeGenerate(prompt: string, fallback: string): Promise<string> {
     return result.response.text().trim();
   } catch (error: any) {
     console.error('AI Generation Failed:', error);
-    return `ERROR: ${error.message || String(error)}\n\nPlease show this to the AI.`;
+    let extraInfo = '';
+    if (error.message && error.message.includes('404')) {
+       try {
+          const apiKey = process.env.GEMINI_API_KEY || '';
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+          const data = await res.json();
+          extraInfo = '\n\nAvailable Models: ' + data.models.map((m: any) => m.name).join(', ');
+       } catch (e) {
+          extraInfo = '\n\nFailed to fetch model list.';
+       }
+    }
+    return `ERROR: ${error.message || String(error)}${extraInfo}\n\nPlease show this to the AI.`;
   }
 }
 
@@ -42,8 +53,18 @@ async function safeGenerateWithSearch(prompt: string, fallback: string): Promise
     return result.response.text().trim();
   } catch (error: any) {
     console.error('AI Search Generation Failed:', error);
-    // Temporary: return the actual error string so the user can see what's wrong in the UI
-    return `ERROR: ${error.message || String(error)}\n\nPlease show this to the AI.`;
+    let extraInfo = '';
+    if (error.message && error.message.includes('404')) {
+       try {
+          const apiKey = process.env.GEMINI_API_KEY || '';
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+          const data = await res.json();
+          extraInfo = '\n\nAvailable Models: ' + data.models.map((m: any) => m.name).join(', ');
+       } catch (e) {
+          extraInfo = '\n\nFailed to fetch model list.';
+       }
+    }
+    return `ERROR: ${error.message || String(error)}${extraInfo}\n\nPlease show this to the AI.`;
   }
 }
 
