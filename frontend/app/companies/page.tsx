@@ -101,14 +101,22 @@ export default function CompaniesPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this company?')) return;
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
     try {
-      await deleteCompany(id);
+      await deleteCompany(deleteConfirmId);
       toast.success('Company deleted successfully');
       fetchCompanies();
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete. Make sure you are an Admin.');
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -323,7 +331,7 @@ export default function CompaniesPage() {
                         </Link>
                         {(session?.user as any)?.role === 'ADMIN' && (
                           <button 
-                            onClick={() => handleDelete(c.id)} 
+                            onClick={() => handleDeleteClick(c.id)} 
                             className="text-rose-600 hover:text-rose-900 bg-rose-50 px-3 py-1.5 rounded-md hover:bg-rose-100 transition-colors"
                           >
                             Delete
@@ -385,6 +393,38 @@ export default function CompaniesPage() {
           </div>
         </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <div className="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+          <div className="fixed inset-0 bg-gray-900/50 transition-opacity backdrop-blur-sm" onClick={() => setDeleteConfirmId(null)}></div>
+          <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+              <div className="relative transform overflow-hidden rounded-xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                  <div className="sm:flex sm:items-start">
+                    <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-rose-100 sm:mx-0 sm:h-10 sm:w-10">
+                      <svg className="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                      <h3 className="text-base font-semibold leading-6 text-gray-900" id="modal-title">Delete Company</h3>
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-500">Are you sure you want to delete this target company? This action cannot be undone and will permanently remove all associated data, assignments, and activity history.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                  <button type="button" className="inline-flex w-full justify-center rounded-md bg-rose-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:ml-3 sm:w-auto transition-colors" onClick={confirmDelete}>Delete completely</button>
+                  <button type="button" className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto transition-colors" onClick={() => setDeleteConfirmId(null)}>Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
