@@ -155,6 +155,85 @@ export default function CompaniesPage() {
     }
   };
 
+  const [focusedRowIndex, setFocusedRowIndex] = useState(-1);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (focusedRowIndex >= 0) {
+      document.getElementById(`row-${focusedRowIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [focusedRowIndex]);
+
+  useEffect(() => {
+    setFocusedRowIndex(-1);
+  }, [companies]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      const isInputFocused = activeEl instanceof HTMLInputElement || activeEl instanceof HTMLTextAreaElement || activeEl instanceof HTMLSelectElement;
+
+      // Global search shortcut (/ or Cmd+K)
+      if ((e.key === '/' || (e.key === 'k' && (e.metaKey || e.ctrlKey))) && !isInputFocused) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        return;
+      }
+
+      // If we're typing in an input, don't trigger row navigation
+      if (isInputFocused) return;
+
+      if (e.key === 'j') {
+        e.preventDefault();
+        setFocusedRowIndex(prev => {
+          const next = Math.min(prev + 1, companies.length - 1);
+          // Auto select if holding shift
+          if (e.shiftKey && next !== prev && next >= 0) {
+             const id = companies[next].id;
+             setSelectedCompanyIds(s => s.includes(id) ? s : [...s, id]);
+          }
+          return next;
+        });
+      }
+
+      if (e.key === 'k') {
+        e.preventDefault();
+        setFocusedRowIndex(prev => {
+          const next = Math.max(prev - 1, 0);
+          // Auto select if holding shift
+          if (e.shiftKey && next !== prev && prev >= 0) {
+             const id = companies[next].id;
+             setSelectedCompanyIds(s => s.includes(id) ? s : [...s, id]);
+          }
+          return next;
+        });
+      }
+
+      if (e.key === 'x') {
+        if (focusedRowIndex >= 0 && focusedRowIndex < companies.length) {
+          e.preventDefault();
+          const id = companies[focusedRowIndex].id;
+          setSelectedCompanyIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+        }
+      }
+
+      if (e.key === 'Enter') {
+        if (focusedRowIndex >= 0 && focusedRowIndex < companies.length) {
+          e.preventDefault();
+          router.push(`/companies/${companies[focusedRowIndex].id}`);
+        }
+      }
+      
+      // Clear focus on escape
+      if (e.key === 'Escape') {
+        setFocusedRowIndex(-1);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [companies, focusedRowIndex, router]);
+
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const handleDeleteClick = (id: string) => {
@@ -283,8 +362,9 @@ export default function CompaniesPage() {
                   </svg>
                 </div>
                 <input 
+                  ref={searchInputRef}
                   type="text" 
-                  placeholder="Search globally..." 
+                  placeholder="Search globally... (Press / or Cmd+K)" 
                   className="block w-full rounded-md border-0 py-1.5 pl-9 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(1); }}
@@ -345,11 +425,14 @@ export default function CompaniesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {companies.map(c => (
-                  <tr key={c.id} className={`hover:bg-gray-50/50 transition-colors group ${selectedCompanyIds.includes(c.id) ? 'bg-indigo-50/30' : ''}`}>
+                {companies.map((c, index) => {
+                  const isFocused = index === focusedRowIndex;
+                  const isSelected = selectedCompanyIds.includes(c.id);
+                  return (
+                  <tr key={c.id} id={`row-${index}`} className={`hover:bg-gray-50/50 transition-all duration-150 group relative ${isSelected ? 'bg-indigo-50/30' : ''} ${isFocused ? 'bg-indigo-50/50 ring-2 ring-inset ring-indigo-500 z-10' : ''}`}>
                     <td className="relative px-6 sm:w-12 sm:px-6">
-                      {selectedCompanyIds.includes(c.id) && (
-                        <div className="absolute inset-y-0 left-0 w-0.5 bg-indigo-600"></div>
+                      {(isSelected || isFocused) && (
+                        <div className={`absolute inset-y-0 left-0 w-0.5 transition-colors ${isFocused ? 'bg-indigo-500' : 'bg-indigo-600'}`}></div>
                       )}
                       <input
                         type="checkbox"
@@ -419,7 +502,8 @@ export default function CompaniesPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             
