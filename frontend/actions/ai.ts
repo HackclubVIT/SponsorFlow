@@ -29,8 +29,8 @@ const getSearchModel = () => {
   if (!apiKey) return null;
   const genAI = new GoogleGenerativeAI(apiKey);
   return genAI.getGenerativeModel({
-    model: 'gemini-3.5-flash',
-    tools: [{ googleSearch: {} }]
+    model: 'gemini-1.5-flash',
+    tools: [{ googleSearchRetrieval: {} }]
   });
 };
 
