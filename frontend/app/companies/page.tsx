@@ -401,17 +401,17 @@ export default function CompaniesPage() {
                       </span>
                     </td>
                     <td className="py-4 pl-3 pr-6 text-right font-medium">
-                      <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
+                      <div className="flex justify-end gap-2 sm:gap-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity focus-within:opacity-100">
                         <Link 
                           href={`/companies/${c.id}`} 
-                          className="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1.5 rounded-md hover:bg-indigo-100 transition-colors"
+                          className="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-4 py-2 sm:px-3 sm:py-1.5 rounded-md hover:bg-indigo-100 transition-colors"
                         >
                           View
                         </Link>
                         {(session?.user as any)?.role === 'ADMIN' && (
                           <button 
                             onClick={() => handleDeleteClick(c.id)} 
-                            className="text-rose-600 hover:text-rose-900 bg-rose-50 px-3 py-1.5 rounded-md hover:bg-rose-100 transition-colors"
+                            className="text-rose-600 hover:text-rose-900 bg-rose-50 px-4 py-2 sm:px-3 sm:py-1.5 rounded-md hover:bg-rose-100 transition-colors"
                           >
                             Delete
                           </button>
@@ -474,16 +474,30 @@ export default function CompaniesPage() {
 
         {/* Floating Bulk Action Bar */}
         {selectedCompanyIds.length > 0 && user?.role === 'ADMIN' && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-8 duration-300">
-            <div className="bg-gray-900 shadow-2xl rounded-2xl p-2 pl-6 pr-4 flex items-center gap-6 text-white ring-1 ring-white/10">
-              <span className="font-medium text-sm whitespace-nowrap">
-                {selectedCompanyIds.length} selected
-              </span>
-              <div className="h-6 w-px bg-gray-700"></div>
+          <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] sm:w-auto z-40 animate-in slide-in-from-bottom-8 duration-300">
+            <div className="bg-gray-900 shadow-2xl rounded-xl sm:rounded-2xl p-3 sm:p-2 sm:pl-6 sm:pr-4 flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-white ring-1 ring-white/10">
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between w-full sm:w-auto">
+                <span className="font-medium text-sm whitespace-nowrap">
+                  {selectedCompanyIds.length} selected
+                </span>
+                
+                <button 
+                  onClick={() => setSelectedCompanyIds([])}
+                  className="sm:hidden p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-gray-800 transition-colors"
+                  title="Clear selection"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="hidden sm:block h-6 w-px bg-gray-700"></div>
+              
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <select 
-                  className="bg-gray-800 text-sm text-white rounded-lg border-0 py-1.5 pl-3 pr-8 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  className="bg-gray-800 text-sm text-white rounded-lg border-0 py-2 sm:py-1.5 pl-3 pr-8 focus:ring-2 focus:ring-indigo-500 cursor-pointer w-full sm:w-auto"
                   value={bulkActionType}
                   onChange={e => setBulkActionType(e.target.value as any)}
                 >
@@ -494,7 +508,7 @@ export default function CompaniesPage() {
 
                 {bulkActionType === 'status' && (
                   <select 
-                    className="bg-gray-800 text-sm text-white rounded-lg border-0 py-1.5 pl-3 pr-8 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    className="bg-gray-800 text-sm text-white rounded-lg border-0 py-2 sm:py-1.5 pl-3 pr-8 focus:ring-2 focus:ring-indigo-500 cursor-pointer w-full sm:w-auto"
                     value={bulkStatusValue}
                     onChange={e => setBulkStatusValue(e.target.value)}
                   >
@@ -510,7 +524,7 @@ export default function CompaniesPage() {
 
                 {bulkActionType === 'assign' && (
                   <select 
-                    className="bg-gray-800 text-sm text-white rounded-lg border-0 py-1.5 pl-3 pr-8 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    className="bg-gray-800 text-sm text-white rounded-lg border-0 py-2 sm:py-1.5 pl-3 pr-8 focus:ring-2 focus:ring-indigo-500 cursor-pointer w-full sm:w-auto"
                     value={bulkAssignValue}
                     onChange={e => setBulkAssignValue(e.target.value)}
                   >
@@ -525,18 +539,18 @@ export default function CompaniesPage() {
                   <button
                     onClick={executeBulkAction}
                     disabled={isBulkActing}
-                    className="bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-semibold py-1.5 px-4 rounded-lg transition-colors disabled:opacity-50 ml-2"
+                    className="bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-semibold py-2 sm:py-1.5 px-4 rounded-lg transition-colors disabled:opacity-50 sm:ml-2 w-full sm:w-auto"
                   >
                     {isBulkActing ? 'Applying...' : 'Apply'}
                   </button>
                 )}
               </div>
               
-              <div className="h-6 w-px bg-gray-700 ml-2"></div>
+              <div className="hidden sm:block h-6 w-px bg-gray-700 ml-2"></div>
               
               <button 
                 onClick={() => setSelectedCompanyIds([])}
-                className="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-gray-800 transition-colors"
+                className="hidden sm:block p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-gray-800 transition-colors"
                 title="Clear selection"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
