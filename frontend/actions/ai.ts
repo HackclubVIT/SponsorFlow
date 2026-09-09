@@ -9,7 +9,7 @@ const getModel = () => {
   const apiKey = process.env.GEMINI_API_KEY || '';
   if (!apiKey) throw new Error('GEMINI_API_KEY environment variable is missing.');
   const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: 'gemini-3.8-flash' });
+  return genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 };
 
 async function safeGenerate(prompt: string, fallback: string): Promise<string> {
@@ -22,14 +22,14 @@ async function safeGenerate(prompt: string, fallback: string): Promise<string> {
     console.error('AI Generation Failed:', error);
     let extraInfo = '';
     if (error.message && error.message.includes('404')) {
-       try {
-          const apiKey = process.env.GEMINI_API_KEY || '';
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-          const data = await res.json();
-          extraInfo = '\n\nAvailable Models: ' + data.models.map((m: any) => m.name).join(', ');
-       } catch (e) {
-          extraInfo = '\n\nFailed to fetch model list.';
-       }
+      try {
+        const apiKey = process.env.GEMINI_API_KEY || '';
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        const data = await res.json();
+        extraInfo = '\n\nAvailable Models: ' + data.models.map((m: any) => m.name).join(', ');
+      } catch (e) {
+        extraInfo = '\n\nFailed to fetch model list.';
+      }
     }
     return `ERROR: ${error.message || String(error)}${extraInfo}\n\nPlease show this to the AI.`;
   }
@@ -40,7 +40,7 @@ const getSearchModel = () => {
   if (!apiKey) throw new Error('GEMINI_API_KEY environment variable is missing.');
   const genAI = new GoogleGenerativeAI(apiKey);
   return genAI.getGenerativeModel({
-    model: 'gemini-3.8-flash',
+    model: 'gemini-3.6-flash',
     tools: [{ googleSearchRetrieval: {} }]
   });
 };
@@ -55,14 +55,14 @@ async function safeGenerateWithSearch(prompt: string, fallback: string): Promise
     console.error('AI Search Generation Failed:', error);
     let extraInfo = '';
     if (error.message && error.message.includes('404')) {
-       try {
-          const apiKey = process.env.GEMINI_API_KEY || '';
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-          const data = await res.json();
-          extraInfo = '\n\nAvailable Models: ' + data.models.map((m: any) => m.name).join(', ');
-       } catch (e) {
-          extraInfo = '\n\nFailed to fetch model list.';
-       }
+      try {
+        const apiKey = process.env.GEMINI_API_KEY || '';
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        const data = await res.json();
+        extraInfo = '\n\nAvailable Models: ' + data.models.map((m: any) => m.name).join(', ');
+      } catch (e) {
+        extraInfo = '\n\nFailed to fetch model list.';
+      }
     }
     return `ERROR: ${error.message || String(error)}${extraInfo}\n\nPlease show this to the AI.`;
   }
