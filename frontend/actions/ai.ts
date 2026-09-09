@@ -9,7 +9,7 @@ const getModel = () => {
   const apiKey = process.env.GEMINI_API_KEY || '';
   if (!apiKey) throw new Error('GEMINI_API_KEY environment variable is missing.');
   const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
+  return genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
 };
 
 async function safeGenerate(prompt: string, fallback: string): Promise<string> {
@@ -40,7 +40,7 @@ const getSearchModel = () => {
   if (!apiKey) throw new Error('GEMINI_API_KEY environment variable is missing.');
   const genAI = new GoogleGenerativeAI(apiKey);
   return genAI.getGenerativeModel({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-3.5-flash',
     tools: [{ googleSearchRetrieval: {} }]
   });
 };
