@@ -33,6 +33,7 @@ export default function CompaniesPage() {
   const [companies, setCompanies] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [companyNamesFilter, setCompanyNamesFilter] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -49,6 +50,9 @@ export default function CompaniesPage() {
   const [bulkStatusValue, setBulkStatusValue] = useState('');
   const [bulkAssignValue, setBulkAssignValue] = useState('');
 
+  // Bulk filter modal states
+  const [isBulkFilterModalOpen, setIsBulkFilterModalOpen] = useState(false);
+  const [bulkFilterInput, setBulkFilterInput] = useState('');
   
   const handleSync = async () => {
     try {
@@ -70,7 +74,8 @@ export default function CompaniesPage() {
         page, 
         limit: 10,
         search: search || undefined,
-        status: statusFilter || undefined
+        status: statusFilter || undefined,
+        companyNames: companyNamesFilter.length > 0 ? companyNamesFilter : undefined
       });
       setCompanies(res.data);
       setTotalPages(res.pagination.totalPages || 1);
@@ -89,7 +94,7 @@ export default function CompaniesPage() {
       
       return () => clearTimeout(delayDebounceFn);
     }
-  }, [page, search, statusFilter, status, router]);
+  }, [page, search, statusFilter, companyNamesFilter, status, router]);
 
   useEffect(() => {
     if (status === 'authenticated' && user?.role === 'ADMIN') {
@@ -336,6 +341,16 @@ export default function CompaniesPage() {
                   </svg>
                   {importing ? 'Importing...' : 'Import CSV'}
                 </button>
+                <button 
+                  onClick={() => setIsBulkFilterModalOpen(true)}
+                  className="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 transition-colors"
+                  title="Paste a list of companies to filter by"
+                >
+                  <svg className="-ml-0.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  Bulk Filter
+                </button>
                 <Link 
                   href="/companies/new" 
                   className="inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-colors"
@@ -383,6 +398,16 @@ export default function CompaniesPage() {
                 <option value="REPLIED">Replied</option>
                 <option value="CONFIRMED">Confirmed</option>
               </select>
+              {companyNamesFilter.length > 0 && (
+                <div className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-md text-sm font-medium border border-indigo-100">
+                  <span>Filtered by {companyNamesFilter.length} companies</span>
+                  <button onClick={() => setCompanyNamesFilter([])} className="text-indigo-500 hover:text-indigo-700">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -672,6 +697,46 @@ export default function CompaniesPage() {
                 <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
                   <button type="button" className="inline-flex w-full justify-center rounded-md bg-rose-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 sm:ml-3 sm:w-auto transition-colors" onClick={confirmDelete}>Delete completely</button>
                   <button type="button" className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto transition-colors" onClick={() => setDeleteConfirmId(null)}>Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Filter Modal */}
+      {isBulkFilterModalOpen && (
+        <div className="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+          <div className="fixed inset-0 bg-gray-900/50 transition-opacity backdrop-blur-sm" onClick={() => setIsBulkFilterModalOpen(false)}></div>
+          <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+              <div className="relative transform overflow-hidden rounded-xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                  <h3 className="text-lg font-semibold leading-6 text-gray-900 mb-2">Bulk Filter Companies</h3>
+                  <p className="text-sm text-gray-500 mb-4">Paste a list of company names (one per line, or comma separated) to filter the directory. You can then use Select All to assign them.</p>
+                  <textarea
+                    rows={8}
+                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                    placeholder="Acme Corp&#10;Stark Industries&#10;Wayne Enterprises"
+                    value={bulkFilterInput}
+                    onChange={(e) => setBulkFilterInput(e.target.value)}
+                  />
+                </div>
+                <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                  <button 
+                    type="button" 
+                    className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:ml-3 sm:w-auto transition-colors" 
+                    onClick={() => {
+                      const names = bulkFilterInput.split(/[\n,]+/).map(n => n.trim()).filter(Boolean);
+                      setCompanyNamesFilter(names);
+                      setPage(1);
+                      setIsBulkFilterModalOpen(false);
+                      setBulkFilterInput('');
+                    }}
+                  >
+                    Filter List
+                  </button>
+                  <button type="button" className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto transition-colors" onClick={() => setIsBulkFilterModalOpen(false)}>Cancel</button>
                 </div>
               </div>
             </div>
