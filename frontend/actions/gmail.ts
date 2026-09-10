@@ -40,6 +40,7 @@ const createMimeEmail = async (
 ) => {
   const boundary = 'outreach-boundary-' + Date.now().toString(16);
   let raw = `To: ${to}\r\n`;
+  raw += `Cc: hackclubfinance@gmail.com\r\n`;
   raw += `Subject: ${subject}\r\n`;
   raw += `MIME-Version: 1.0\r\n`;
   raw += `Content-Type: multipart/alternative; boundary="${boundary}"\r\n\r\n`;
@@ -251,6 +252,7 @@ export async function sendEmailWithAttachments(formData: FormData) {
 
   const mail = new MailComposer({
     to: company.email,
+    cc: 'hackclubfinance@gmail.com',
     subject: subject,
     text: body,
     html: htmlBody,
