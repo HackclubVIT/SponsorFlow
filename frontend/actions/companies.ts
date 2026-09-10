@@ -5,11 +5,11 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../app/api/auth/[...nextauth]/route';
 import { parse } from 'csv-parse/sync';
 
-export async function getCompanies(filters?: { search?: string, status?: string, industry?: string, page?: number, limit?: number }) {
+export async function getCompanies(filters?: { search?: string, status?: string, industry?: string, page?: number, limit?: number, companyNames?: string[] }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error('Unauthorized');
 
-  const { search, status, industry, page = 1, limit = 1000 } = filters || {};
+  const { search, status, industry, page = 1, limit = 1000, companyNames } = filters || {};
 
   const where: any = {};
   if (search) {
@@ -24,6 +24,17 @@ export async function getCompanies(filters?: { search?: string, status?: string,
   }
   if (status) where.status = status;
   if (industry) where.industry = industry;
+  if (companyNames && companyNames.length > 0) {
+    if (where.OR) {
+      where.AND = [
+        { OR: where.OR },
+        { OR: companyNames.map(name => ({ companyName: { equals: name, mode: 'insensitive' } })) }
+      ];
+      delete where.OR;
+    } else {
+      where.OR = companyNames.map(name => ({ companyName: { equals: name, mode: 'insensitive' } }));
+    }
+  }
 
   const total = await prisma.company.count({ where });
   const companies = await prisma.company.findMany({
