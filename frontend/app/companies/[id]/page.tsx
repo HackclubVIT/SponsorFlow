@@ -52,6 +52,7 @@ export default function CompanyProfilePage() {
   const [submittingFollowUp, setSubmittingFollowUp] = useState(false);
   const [generatingIntro, setGeneratingIntro] = useState(false);
   const [draftingEmail, setDraftingEmail] = useState(false);
+  const [draftModel, setDraftModel] = useState('gemini-3.6-flash');
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [isEditingSummary, setIsEditingSummary] = useState(false);
   const [summaryText, setSummaryText] = useState('');
@@ -205,7 +206,7 @@ export default function CompanyProfilePage() {
   const handleDraftEmail = async () => {
     setDraftingEmail(true);
     try {
-      const { success, subject, body } = await draftFullEmail(params.id as string);
+      const { success, subject, body } = await draftFullEmail(params.id as string, draftModel);
       
       if (!success) {
         throw new Error('Failed to generate draft');
@@ -542,16 +543,33 @@ export default function CompanyProfilePage() {
                     <div className="flex justify-between items-center mb-1">
                       <label className="block text-xs font-medium text-gray-500">Message</label>
                       <div className="flex items-center gap-4">
-                        <button 
-                          type="button"
-                          onClick={handleDraftEmail}
-                          disabled={draftingEmail}
-                          className="text-xs text-indigo-600 font-medium hover:text-indigo-800 disabled:opacity-50 disabled:hover:text-indigo-600 transition-colors flex items-center gap-1"
-                          title="Draft a complete email. Auto-generates company profile if missing."
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.92 12.38a1 1 0 00-.22-1.09l-7-7a.996.996 0 10-1.41 1.41l5.3 5.3H4v2h12.59l-5.3 5.3a.996.996 0 000 1.41c.19.2.44.3.7.3s.51-.1.71-.29l7-7c.09-.09.16-.21.21-.33z" /></svg>
-                          {draftingEmail ? 'Drafting...' : 'Draft Full Email'}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <select 
+                            value={draftModel} 
+                            onChange={(e) => setDraftModel(e.target.value)}
+                            disabled={draftingEmail}
+                            className="text-xs border-gray-300 rounded-md py-1 pl-2 pr-6 text-gray-700 bg-white focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                            title="Select AI Model"
+                          >
+                            <option value="gemini-3.6-flash">gemini-3.6-flash</option>
+                            <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+                            <option value="gemini-3.8-flash">gemini-3.8-flash</option>
+                            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                            <option value="gemini-3-flash-preview">gemini-3-flash-preview</option>
+                            <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+                            <option value="gemma-4-31b-it">gemma-4-31b-it</option>
+                          </select>
+                          <button 
+                            type="button"
+                            onClick={handleDraftEmail}
+                            disabled={draftingEmail}
+                            className="text-xs text-indigo-600 font-medium hover:text-indigo-800 disabled:opacity-50 disabled:hover:text-indigo-600 transition-colors flex items-center gap-1"
+                            title="Draft a complete email. Auto-generates company profile if missing."
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.92 12.38a1 1 0 00-.22-1.09l-7-7a.996.996 0 10-1.41 1.41l5.3 5.3H4v2h12.59l-5.3 5.3a.996.996 0 000 1.41c.19.2.44.3.7.3s.51-.1.71-.29l7-7c.09-.09.16-.21.21-.33z" /></svg>
+                            {draftingEmail ? 'Drafting...' : 'Draft Full Email'}
+                          </button>
+                        </div>
                         <button 
                           type="button"
                           onClick={handleGenerateIntro}

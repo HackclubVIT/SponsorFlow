@@ -5,11 +5,11 @@ import { prisma } from '../lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../app/api/auth/[...nextauth]/route';
 
-const getModel = () => {
+const getModel = (modelName: string = 'gemini-3.6-flash') => {
   const apiKey = process.env.GEMINI_API_KEY || '';
   if (!apiKey) throw new Error('GEMINI_API_KEY environment variable is missing.');
   const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+  return genAI.getGenerativeModel({ model: modelName });
 };
 
 async function safeGenerate(prompt: string, fallback: string): Promise<string> {
@@ -247,7 +247,7 @@ export async function suggestReply(companyId: string, content: string) {
   return { success: true, suggestion };
 }
 
-export async function draftFullEmail(companyId: string) {
+export async function draftFullEmail(companyId: string, customModelName?: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("Unauthorized");
 
@@ -296,7 +296,7 @@ Guidelines:
 
   let rawText = "";
   try {
-    const model = getModel();
+    const model = getModel(customModelName || 'gemini-3.6-flash');
     if (!model) {
       rawText = "AI ERROR: GEMINI_API_KEY environment variable is missing on the server.\n\n" + fallbackBase;
     } else {
