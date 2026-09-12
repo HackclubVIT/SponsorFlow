@@ -36,7 +36,8 @@ SponsorFlow/
 │   └── public/             # Static assets
 └── backend/                # (Deprecated) Legacy Express.js backend
 ```
-<img width="4658" height="4879" alt="diagram" src="https://github.com/user-attachments/assets/d4ae1862-4994-4745-8426-075da5022993" />
+<img width="6391" height="5006" alt="diagram (1)" src="https://github.com/user-attachments/assets/af87aa25-1615-49f5-a31c-a5c39dc06c0e" />
+
 
 
 ## Prerequisites
